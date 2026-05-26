@@ -8,8 +8,16 @@ import io
 import json
 import uvicorn
 
-app = FastAPI(title="Zororo Phumulani v4.1 - Railway Presentation Mode", version="4.1.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(
+    title="Zororo Phumulani v4.1 - Railway Presentation Mode", version="4.1.0"
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 PDF_DIR = "generated_pdfs"
 STATIC_DIR = "static"
@@ -23,6 +31,7 @@ if not os.path.exists(REGISTRY_FILE):
     with open(REGISTRY_FILE, "w") as f:
         json.dump([], f)
 
+
 def load_registered_phone_numbers() -> List[str]:
     try:
         with open(REGISTRY_FILE, "r") as f:
@@ -30,11 +39,13 @@ def load_registered_phone_numbers() -> List[str]:
     except Exception:
         return []
 
+
 def append_registered_phone_number(phone_num: str):
     numbers = load_registered_phone_numbers()
     numbers.append(phone_num)
     with open(REGISTRY_FILE, "w") as f:
         json.dump(numbers, f)
+
 
 def read_and_render_template(title_label, context_flag):
     file_path = "templates/index.html"
@@ -46,14 +57,27 @@ def read_and_render_template(title_label, context_flag):
             return html_content
     return "<h1>System Error: templates/index.html missing!</h1>"
 
+
 @app.get("/", response_class=HTMLResponse)
-async def serve_local_form(): return read_and_render_template("LOCAL REGIONAL FORM SECTION (FSP48558)", "South Africa")
+async def serve_local_form():
+    return read_and_render_template(
+        "LOCAL REGIONAL FORM SECTION (FSP48558)", "South Africa"
+    )
+
 
 @app.get("/sadac", response_class=HTMLResponse)
-async def serve_sadac_form(): return read_and_render_template("SADC REGIONAL FORM SECTION (FSP48558)", "SADC Region")
+async def serve_sadac_form():
+    return read_and_render_template(
+        "SADC REGIONAL FORM SECTION (FSP48558)", "SADC Region"
+    )
+
 
 @app.get("/wwfp", response_class=HTMLResponse)
-async def serve_wwfp_form(): return read_and_render_template("WWFP DIASPORA FORM SECTION (FSP48558)", "International")
+async def serve_wwfp_form():
+    return read_and_render_template(
+        "WWFP DIASPORA FORM SECTION (FSP48558)", "International"
+    )
+
 
 @app.post("/submit-global-policy")
 async def submit_policy(
@@ -81,14 +105,17 @@ async def submit_policy(
     fam_name: List[str] = Form(default=[]),
     fam_dob: List[str] = Form(default=[]),
     passport_doc: UploadFile = File(default=None),
-    tsf_doc: UploadFile = File(default=None)
+    tsf_doc: UploadFile = File(default=None),
 ):
     clean_phone = phone.strip().replace(" ", "")
     if clean_phone in load_registered_phone_numbers():
-        raise HTTPException(status_code=400, detail="Guardrail Failure: A policy has already been registered with this mobile phone number.")
+        raise HTTPException(
+            status_code=400,
+            detail="Guardrail Failure: A policy has already been registered with this mobile phone number.",
+        )
 
     append_registered_phone_number(clean_phone)
-    
+
     # STICK TO THE EMAIL PLAN: EXPLICIT DEMO/PREVIEW PLACEHOLDERS
     policy_number = "DEMO-PREVIEW-MODE"
     payat_number = "NO-LIVE-REFERENCE"
@@ -109,13 +136,17 @@ async def submit_policy(
     c.setFillColorRGB(1, 1, 1)
     c.setFont("Helvetica-Bold", 11)
     c.drawString(45, 825, "ZORORO PHUMULANI PRESENTATION LAYER PREVIEW BOOKLET")
-    
+
     # Big Red Warning Banner matching your email statement
     c.setFillColor(HexColor("#dc2626"))
     c.rect(45, 785, 505, 20, fill=True, stroke=False)
     c.setFillColorRGB(1, 1, 1)
     c.setFont("Helvetica-Bold", 9)
-    c.drawString(55, 791, "NOTICE: DEMO PREVIEW ONLY · NOT A LIVE SYSTEM CONTRACT · NO POLICY ISSUED")
+    c.drawString(
+        55,
+        791,
+        "NOTICE: DEMO PREVIEW ONLY · NOT A LIVE SYSTEM CONTRACT · NO POLICY ISSUED",
+    )
 
     c.setFillColorRGB(0, 0, 0)
     c.setFont("Helvetica-Bold", 10)
@@ -126,7 +157,7 @@ async def submit_policy(
     c.drawString(45, 687, f"Identity Profile Value: {identity_value} ({id_doc_type})")
     c.drawString(45, 669, f"Cover Option Selection: {plan_name}")
     c.drawString(45, 651, f"Calculated Premium Level: {local_total}")
-    
+
     y = 600
     c.setFont("Helvetica-Bold", 10)
     c.drawString(45, y, "IMMEDIATE DEPENDENTS LIVES ATTACHED:")
@@ -136,7 +167,9 @@ async def submit_policy(
         if fam_name[i].strip():
             has_dependents = True
             y -= 18
-            c.drawString(45, y, f"- [{fam_relation[i]}] {fam_name[i]} (DOB: {fam_dob[i]})")
+            c.drawString(
+                45, y, f"- [{fam_relation[i]}] {fam_name[i]} (DOB: {fam_dob[i]})"
+            )
     if not has_dependents:
         y -= 18
         c.drawString(45, y, "None declared.")
@@ -165,13 +198,32 @@ async def submit_policy(
     c.setFont("Helvetica-Bold", 9)
     c.drawString(45, 780, "DEBIT ORDER ELECTRONIC AUTHORIZATION FRAMEWORK MANDATE")
     c.setFont("Helvetica", 8)
-    c.drawString(45, 760, "I the undersigned, authorize Zororo Phumulani to debit my bank account monthly.")
-    c.drawString(45, 745, f"Settlement Selection Channel: {pay_method} (Deduction Date Option: {deduction_date})")
+    c.drawString(
+        45,
+        760,
+        "I the undersigned, authorize Zororo Phumulani to debit my bank account monthly.",
+    )
+    c.drawString(
+        45,
+        745,
+        f"Settlement Selection Channel: {pay_method} (Deduction Date Option: {deduction_date})",
+    )
     if pay_method == "Debit Order":
-        c.drawString(45, 730, f"Banking Profile Account: {bank_name} - (Acc: {account_num})")
-    c.drawString(45, 680, "• Underwriting Rules: 3 months waiting for immediate family, 6 months for extended lines.")
-    c.drawString(45, 660, "• Legal Full Name Affirmation declaration confirmed: Signed by " + legal_name_confirm)
-    
+        c.drawString(
+            45, 730, f"Banking Profile Account: {bank_name} - (Acc: {account_num})"
+        )
+    c.drawString(
+        45,
+        680,
+        "• Underwriting Rules: 3 months waiting for immediate family, 6 months for extended lines.",
+    )
+    c.drawString(
+        45,
+        660,
+        "• Legal Full Name Affirmation declaration confirmed: Signed by "
+        + legal_name_confirm,
+    )
+
     # Bottom Disclaimer matching email text
     c.setFillColor(HexColor("#fef2f2"))
     c.rect(45, 45, 505, 40, fill=True, stroke=False)
@@ -179,17 +231,32 @@ async def submit_policy(
     c.setFont("Helvetica-Bold", 8)
     c.drawString(55, 70, "PRESENTATION LAYER PREVIEW WARNING")
     c.setFont("Helvetica", 7.5)
-    c.drawString(55, 56, "This document was compiled locally inside standalone presentation components. It is not backed by a live")
-    c.drawString(55, 46, "Easipol core database policy registry profile, carries no real transaction ID, and is not an active issued contract.")
+    c.drawString(
+        55,
+        56,
+        "This document was compiled locally inside standalone presentation components. It is not backed by a live",
+    )
+    c.drawString(
+        55,
+        46,
+        "Easipol core database policy registry profile, carries no real transaction ID, and is not an active issued contract.",
+    )
 
     c.save()
 
     exposed_headers = {
         "X-Easipol-Policy-Number": str(policy_number),
         "X-Easipol-Billing-Reference": str(payat_number),
-        "Access-Control-Expose-Headers": "X-Easipol-Policy-Number, X-Easipol-Billing-Reference"
+        "Access-Control-Expose-Headers": "X-Easipol-Policy-Number, X-Easipol-Billing-Reference",
     }
-    return FileResponse(pdf_path, media_type="application/pdf", filename=pdf_filename, headers=exposed_headers)
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=pdf_filename,
+        headers=exposed_headers,
+    )
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
