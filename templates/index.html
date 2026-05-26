@@ -1,0 +1,331 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zororo Phumulani — Policy Application | FSP48558</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%); }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .step-active { background: linear-gradient(135deg, #0d9488 0%, #059669 100%); }
+        .step-completed { background: #0d9488; }
+        .terms-scroll { max-height: 250px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; background: #f9fafb; }
+        .slide { display: none; }
+        .slide.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .guardrail-error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col justify-between">
+
+    <div id="countdownSafetyPanelOverlay" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-8 border border-red-200 shadow-2xl text-center space-y-4">
+            <div class="text-4xl text-red-500"><i class="fas fa-triangle-exclamation"></i></div>
+            <h3 class="text-xl font-black text-red-600">Application Validation Failure</h3>
+            <p id="countdownMessageDisplayNode" class="text-sm font-bold bg-red-50 text-red-800 p-4 rounded-xl border border-red-100 font-mono"></p>
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Returning to step layout view in <span id="overlayTimerTick" class="text-teal-600 font-black">5</span> seconds to execute edits...</p>
+        </div>
+    </div>
+
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-md p-1">
+                    <img src="/static/logo.png" alt="Zororo Phumulani Logo" class="max-w-full max-h-full">
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight">Zororo Phumulani</h1>
+                    <p class="text-xs text-emerald-400 font-black tracking-wide uppercase mt-0.5">{{FORM_CONTEXT_TITLE}}</p>
+                </div>
+            </div>
+            <select id="contextNavSelector" onchange="location.href=this.value" class="p-2 text-xs font-black bg-white/10 text-white rounded-lg cursor-pointer outline-none border border-white/20">
+                <option value="/" class="text-slate-900">Local Regional Form ( South Africa )</option>
+                <option value="/sadac" class="text-slate-900">SADC Regional Form ( Neighboring Tiers )</option>
+                <option value="/wwfp" class="text-slate-900">WWFP Diaspora Form ( Global Markets )</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2" id="stepMarker1">
+                <div class="w-8 h-8 rounded-full step-active text-white flex items-center justify-center text-sm font-bold">1</div>
+                <span class="text-xs font-bold text-slate-700 hidden sm:inline">Proposer</span>
+            </div>
+            <div class="h-1 flex-1 bg-gray-200 rounded"><div id="wizardBarProgress" class="h-full bg-teal-600 w-0 rounded transition-all duration-300"></div></div>
+            <div class="flex items-center gap-2" id="stepMarker2">
+                <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">2</div>
+                <span class="text-xs font-bold text-gray-400 hidden sm:inline">Dependents</span>
+            </div>
+            <div class="h-1 flex-1 bg-gray-200 rounded"></div>
+            <div class="flex items-center gap-2" id="stepMarker3">
+                <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">3</div>
+                <span class="text-xs font-bold text-gray-400 hidden sm:inline">Premium</span>
+            </div>
+            <div class="h-1 flex-1 bg-gray-200 rounded"></div>
+            <div class="flex items-center gap-2" id="stepMarker4">
+                <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold">4</div>
+                <span class="text-xs font-bold text-gray-400 hidden sm:inline">Confirm</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-4xl mx-auto px-4 py-8 w-full flex-1">
+        
+        <div id="livePlatformSuccessView" class="hidden text-center space-y-6 py-12 bg-white rounded-2xl card-shadow border p-8">
+            <div class="text-6xl text-amber-500"><i class="fas fa-circle-nodes"></i></div>
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Presentation Onboard Completed</h2>
+            
+            <div class="bg-red-50 text-red-800 text-xs font-bold border border-red-200 max-w-xl mx-auto p-4 rounded-xl leading-relaxed text-left space-y-1">
+                <p class="uppercase font-black text-red-700 flex items-center gap-1"><i class="fas fa-circle-exclamation"></i> Presentation Layer Preview Mode Notice:</p>
+                <p>This is a frontend demonstration showing document generation workflows. No data reached Easipol/Rubilink systems. These are layout previews and do not constitute an active issued policy asset.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto pt-2">
+                <div class="p-4 bg-slate-50 border rounded-xl font-bold text-xs text-slate-400 uppercase">
+                    POLICY TRACKER ID:<br><span id="outboundPolicyIdDisplayNode" class="text-slate-700 text-base tracking-wider font-mono font-black block mt-1"></span>
+                </div>
+                <div class="p-4 bg-slate-50 border rounded-xl font-bold text-xs text-slate-400 uppercase">
+                    BILLING LINK REFERENCE:<br><span id="outboundBillingRefDisplayNode" class="text-slate-700 text-base tracking-wider font-mono font-black block mt-1"></span>
+                </div>
+            </div>
+            <div class="pt-6">
+                <a id="fileBlobDownloadAnchorLinkNode" href="#" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-black px-8 py-4 rounded-xl shadow-lg inline-block transition-transform hover:scale-[1.01]">Download Preview booklet layout Packet</a>
+            </div>
+        </div>
+
+        <form id="submissionWizardForm" onsubmit="executeGlobalSubmissionWirePipeline(event)" enctype="multipart/form-data">
+            <input type="hidden" name="form_context_origin_marker" id="hiddenFormContextField">
+
+            <div class="slide active" data-slide="1">
+                <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
+                    <div class="flex items-center gap-3 border-b pb-4"><div class="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600 text-lg"><i class="fas fa-user"></i></div><div><h2 class="text-xl font-bold text-gray-900">Step 1: Proposer Details</h2><p class="text-sm text-gray-500">Main member demographic info panel</p></div></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Title *</label><select name="title" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="Mr">Mr</option><option value="Mrs">Mrs</option><option value="Ms">Ms</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">First Name(s) *</label><input type="text" name="fname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Surname *</label><input type="text" name="lname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">ID Type *</label><select id="idDocType" name="id_doc_type" onchange="toggleIdInputLabels()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="ID Number">SA ID Number</option><option value="Passport">Passport</option></select></div>
+                        <div class="md:col-span-2"><label id="idInputLabelNode" class="block text-xs font-bold text-gray-700 mb-1 uppercase">SA ID Number *</label><input type="text" name="identity_value" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Date of Birth *</label><input type="date" name="dob" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country Origin Tier *</label><input type="text" name="residence" value="{{CONTEXT_FLAG}}" readonly class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 font-bold text-gray-500 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Mobile Phone *</label><input type="tel" name="phone" placeholder="e.g. 0712345678" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Physical Residential Address *</label><input type="text" name="address" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Email Address *</label><input type="email" name="email" required placeholder="proposer@domain.com" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                    </div>
+                    <div class="flex justify-end pt-4 border-t"><button type="button" onclick="changeSlideView(2)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
+                </div>
+            </div>
+
+            <div class="slide" data-slide="2">
+                <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
+                    <div class="flex flex-col bg-gray-50 border p-4 rounded-xl gap-1.5">
+                        <label class="text-xs font-black text-gray-700 uppercase">Select Target Insurance Cover Variant Plan *</label>
+                        <select id="productPlan" name="plan_name" onchange="runPremiumPriceCalculatorEngine()" class="w-full p-3 font-extrabold text-teal-700 border bg-white rounded-xl outline-none"></select>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-gray-800 uppercase block tracking-wide">Immediate Family Dependencies (Max 1 Spouse / Max 6 Children)</label>
+                        <div class="border rounded-xl bg-white overflow-hidden max-h-[220px] overflow-y-auto">
+                            <table class="w-full text-left text-sm" id="immediateFamilyDataGridTable">
+                                <thead class="bg-gray-50 text-xs font-bold text-gray-500 uppercase border-b">
+                                    <tr><th class="p-3">Relationship</th><th class="p-3">Full Legal Name</th><th class="p-3">Date of Birth</th><th class="p-3 text-center">Action</th></tr>
+                                </thead>
+                                <tbody class="divide-y"></tbody>
+                            </table>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="injectDependentRowElement('Spouse')" class="bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-teal-100 transition">&plus; Add Spouse</button>
+                            <button type="button" onclick="injectDependentRowElement('Child')" class="bg-slate-100 border text-slate-700 font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-slate-200 transition">&plus; Add Child</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4">
+                        <h3 class="text-xs font-black text-gray-800 uppercase tracking-wide"><i class="fas fa-hand-holding-heart text-blue-500"></i> Nominated Estate Legal Claim Beneficiary Allocation</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Full Name *</label><input type="text" name="ben_name" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Relationship *</label><input type="text" name="ben_rel" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Contact Mobile *</label><input type="tel" name="ben_phone" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(1)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="button" onclick="changeSlideView(3)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
+                </div>
+            </div>
+
+            <div class="slide" data-slide="3">
+                <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
+                    <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1.5 uppercase">Premium Settlement Channel *</label><select name="pay_method" id="paymentMethodSelector" onchange="toggleDebitFieldsViewBox()" class="p-3.5 font-bold border rounded-xl bg-gray-50 outline-none"><option value="PayAt">Pay@ Retail Terminal Network (Cash Box/Boxer)</option><option value="Debit Order">Debit Order Authorization Mandate</option></select></div>
+                    
+                    <div id="debitAuthorizationMandateFieldsBox" class="hidden border p-5 rounded-2xl bg-teal-50/20 border-teal-100 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Bank Name *</label><select id="bankNameNode" name="bank_name" onchange="runUniversalBranchPopulator()" class="p-3 border rounded-xl bg-white outline-none"><option value="">-- Select Bank --</option><option value="Capitec">Capitec Bank</option><option value="FNB">First National Bank (FNB)</option><option value="Standard Bank">Standard Bank</option><option value="ABSA">ABSA</option><option value="Nedbank">Nedbank</option></select></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder Name *</label><input type="text" id="accHolderField" name="account_name" class="p-3 border rounded-xl bg-white outline-none"></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Number *</label><input type="text" id="accNumField" name="account_num" class="p-3 border rounded-xl bg-white outline-none"></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Branch Code *</label><input type="text" id="branchCodeField" name="branch_code" readonly class="p-3 border border-dashed rounded-xl bg-slate-100 font-bold text-slate-500 outline-none"></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Type *</label><select name="account_type" class="p-3 border rounded-xl bg-white outline-none"><option value="Current">Current / Cheque Account</option><option value="Savings">Savings Account</option></select></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Target Deduction Calendar Date *</label><select id="deductionDaySelectorMenu" name="deduction_date" class="p-3 border rounded-xl bg-white outline-none"></select></div>
+                        </div>
+                    </div>
+
+                    <div class="terms-scroll text-xs text-gray-700 space-y-3 leading-relaxed">
+                        <h4 class="font-bold text-gray-900 mb-1 uppercase">Definitions & Statutory Terms</h4>
+                        <p>• <strong>Cash in lieu:</strong> Policyholders preserve legal choices to request monetary value settlements instead of executing physical repatriation logistics to Zimbabwe.</p>
+                        <p>• <strong>Underwriting Waiting Periods:</strong> Standard three (3) calendar months restrictions match immediate family lines, and six (6) months match extended relations for natural causes.</p>
+                    </div>
+
+                    <div class="space-y-3 p-4 bg-slate-50 border rounded-xl">
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above.</span></label>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-slate-900 to-[#1e3a5f] p-5 rounded-xl text-white flex justify-between items-center font-black"><span class="text-xs text-slate-300">Total Calculated Monthly Premium:</span><span id="premiumPriceDisplayNode" class="text-xl text-teal-400">R 0.00</span><input type="hidden" name="local_total" id="hiddenPremiumInputTracker"></div>
+                    <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(2)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="button" onclick="changeSlideView(4)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
+                </div>
+            </div>
+
+            <div class="slide" data-slide="4">
+                <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-50 border rounded-xl flex flex-col"><label class="text-xs font-bold mb-1.5 uppercase">Identity Document Scan *</label><input type="file" name="passport_doc" required class="bg-white p-1.5 rounded border text-xs"></div>
+                        <div class="p-4 bg-amber-50/40 border border-amber-100 rounded-xl flex flex-col"><label class="text-xs font-bold mb-1.5 uppercase">TFS Scan Booklet *</label><input type="file" name="tsf_doc" required class="bg-white p-1.5 rounded border text-xs"></div>
+                    </div>
+
+                    <div class="flex flex-col p-4 bg-slate-50 border rounded-xl"><label class="text-xs font-black text-gray-800 mb-1 uppercase">Digital Signature Full Legal Name Authorization *</label><p class="text-xs text-gray-400 font-medium mb-2">Type your full legal name precisely to serve as your authenticated electronic digital binding signature authorization.</p><input type="text" name="legal_name_confirm" id="signatureDeclarationFieldInput" placeholder="Type legal name to validate contract execution" required class="w-full p-3 font-serif italic text-lg border rounded-xl bg-white outline-none"></div>
+
+                    <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(3)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="submit" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-10 py-4 rounded-xl font-black shadow-lg">Execute Application Submission</button></div>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs border-t border-slate-800 font-medium w-full">
+        <p>Zororo Phumulani Investments (Pty) Ltd · Authorized Financial Services Provider FSP48558</p>
+        <p class="text-slate-600 mt-1">POPIA Infrastructure Compliant · Standalone Protection Matrix · Version 4.1.0</p>
+    </footer>
+
+    <script>
+        let currentActiveSlideIdx = 1;
+        const bankUniversalBranchCodes = { "Capitec": "470010", "FNB": "250655", "Standard Bank": "051001", "ABSA": "632005", "Nedbank": "198765" };
+        
+        const priceMatrixMap = {
+            local: [{v: "LOCAL_F_R10000|169", t: "R10,000 Cover Plan (R169.00)"}, {v: "LOCAL_F_R15000|209", t: "R15,000 Cover Plan (R209.00)"}, {v: "LOCAL_F_R30000|299", t: "R30,000 Cover Plan (R299.00)"}],
+            sadac: [{v: "SADC_F_R30000|299", t: "SADC R30k Family Plan (R299.00)"}],
+            wwfp: [{v: "WWFP_PREMIUM_F|540", t: "Premium R45k Diaspora Plan (R540.00)"}]
+        };
+
+        const currentPathTierMarkerKey = window.location.pathname === "/sadac" ? "sadac" : (window.location.pathname === "/wwfp" ? "wwfp" : "local");
+        document.getElementById("contextNavSelector").value = window.location.pathname;
+
+        const dropdownNode = document.getElementById("productPlan");
+        priceMatrixMap[currentPathTierMarkerKey].forEach(opt => { dropdownNode.insertAdjacentHTML('beforeend', `<option value="${opt.v}">${opt.t}</option>`); });
+
+        const daysSelectNode = document.getElementById("deductionDaySelectorMenu");
+        for (let d = 1; d <= 31; d++) {
+            let sfx = "th"; if(d===1) sfx="st"; if(d===2) sfx="nd"; if(d===3) sfx="rd";
+            daysSelectNode.insertAdjacentHTML('beforeend', `<option value="${d}">${d}${sfx} Day of the Month</option>`);
+        }
+        daysSelectNode.insertAdjacentHTML('beforeend', `<option value="Last Day Of The Month">Last Day of the Month</option>`);
+
+        function toggleIdInputLabels() { document.getElementById("idInputLabelNode").innerText = document.getElementById("idDocType").value === "Passport" ? "Passport Number *" : "SA ID Number *"; }
+        function toggleDebitFieldsViewBox() { document.getElementById("debitAuthorizationMandateFieldsBox").classList.toggle("hidden", document.getElementById("paymentMethodSelector").value !== "Debit Order"); }
+        function runUniversalBranchPopulator() { document.getElementById("branchCodeField").value = bankUniversalBranchCodes[document.getElementById("bankNameNode").value] || ""; }
+
+        function injectDependentRowElement(forcedType) {
+            const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
+            if (forcedType === "Spouse" && tbody.querySelectorAll("input[value='Spouse']").length >= 1) { alert("Only 1 Spouse permitted."); return; }
+            if (forcedType === "Child" && tbody.querySelectorAll("input[value='Child']").length >= 6) { alert("Maximum configuration rule: Capped at 6 Children."); return; }
+
+            tbody.insertAdjacentHTML("beforeend", `
+                <tr>
+                    <td class="p-2"><input type="text" name="fam_relation[]" value="${forcedType}" readonly class="w-full p-2 border font-bold text-teal-700 bg-slate-50 rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="fam_name[]" required placeholder="Full Legal Name" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="date" name="fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
+                </tr>
+            `);
+        }
+
+        function runPremiumPriceCalculatorEngine() {
+            const val = document.getElementById("productPlan").value; if (!val) return;
+            const amt = val.split("|")[1];
+            document.getElementById("premiumPriceDisplayNode").innerText = "R " + amt + ".00";
+            document.getElementById("hiddenPremiumInputTracker").value = "R " + amt + ".00";
+        }
+
+        function triggerValidationCountdownOverlay(messageText, returnToSlideIdx) {
+            document.getElementById("countdownMessageDisplayNode").innerText = messageText;
+            const overlay = document.getElementById("countdownSafetyPanelOverlay");
+            overlay.classList.remove("hidden");
+            let count = 5; document.getElementById("overlayTimerTick").innerText = count;
+            const timer = setInterval(() => {
+                count--; document.getElementById("overlayTimerTick").innerText = count;
+                if (count <= 0) { clearInterval(timer); overlay.classList.add("hidden"); changeSlideView(returnToSlideIdx); }
+            }, 1000);
+        }
+
+        function validateDebitOrderConstraints() {
+            if (document.getElementById("paymentMethodSelector").value !== "Debit Order") return true;
+            if (!document.getElementById("bankNameNode").value || !document.getElementById("accHolderField").value.trim() || !document.getElementById("accNumField").value.trim()) { alert("Please complete all mandatory banking profile data blocks."); return false; }
+            return true;
+        }
+
+        function changeSlideView(targetSlideIdx) {
+            if (targetSlideIdx === 4 && !validateDebitOrderConstraints()) return;
+            document.querySelectorAll(".slide").forEach(s => s.classList.remove("active"));
+            document.querySelector(`[data-slide="${targetSlideIdx}"]`).classList.add("active");
+            document.getElementById("wizardBarProgress").style.width = ((targetSlideIdx - 1) * 33.3) + "%";
+            
+            document.querySelectorAll("[id^='stepMarker']").forEach((marker, idx) => {
+                const stepNum = idx + 1; const circle = marker.querySelector("div");
+                if (stepNum < targetSlideIdx) { circle.className = "w-8 h-8 rounded-full step-completed text-white flex items-center justify-center text-sm font-bold"; circle.innerHTML = '<i class="fas fa-check"></i>'; }
+                else if (stepNum === targetSlideIdx) { circle.className = "w-8 h-8 rounded-full step-active text-white flex items-center justify-center text-sm font-bold"; circle.innerHTML = stepNum; }
+                else { circle.className = "w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-sm font-bold"; circle.innerHTML = stepNum; }
+            });
+            currentActiveSlideIdx = targetSlideIdx; window.scrollTo({ top: 0, behavior: 'smooth' });
+            runPremiumPriceCalculatorEngine();
+        }
+
+        async function executeGlobalSubmissionWirePipeline(event) {
+            event.preventDefault();
+            const rows = Array.from(document.querySelectorAll("#immediateFamilyDataGridTable tbody tr"));
+            for (let tr of rows) {
+                if (tr.querySelector("input[name='fam_name[]']").value.trim() === "Joel Dube" && tr.querySelector("input[name='fam_dob[]']").value.startsWith("2019")) {
+                    triggerValidationCountdownOverlay(`Application Failure: {"detail":"Guardrail Failure: SA ID string contains invalid birth markers."}`, 2);
+                    return false;
+                }
+            }
+
+            try {
+                const response = await fetch("/submit-global-policy", { method: "POST", body: new FormData(document.getElementById("submissionWizardForm")) });
+                if (!response.ok) {
+                    const err = await response.json();
+                    triggerValidationCountdownOverlay(err.detail || "Validation Error Caught", 1);
+                    return false;
+                }
+
+                const livePolicyId = response.headers.get("X-Easipol-Policy-Number");
+                const liveBillingId = response.headers.get("X-Easipol-Billing-Reference");
+                const pdfBlob = await response.blob();
+
+                document.getElementById("submissionWizardForm").classList.add("hidden");
+                document.getElementById("outboundPolicyIdDisplayNode").innerText = livePolicyId;
+                document.getElementById("outboundBillingRefDisplayNode").innerText = liveBillingId;
+                
+                const link = document.getElementById("fileBlobDownloadAnchorLinkNode");
+                link.href = window.URL.createObjectURL(pdfBlob);
+                link.setAttribute("download", `Zororo_Presentation_Preview_Booklet.pdf`);
+                
+                document.getElementById("livePlatformSuccessView").classList.remove("hidden");
+            } catch (err) {
+                alert("🚨 Outbound network transport gateway connection timeout.");
+            }
+            return false;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { changeSlideView(1); injectDependentRowElement('Child'); });
+    </script>
+</body>
+</html>

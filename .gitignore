@@ -1,0 +1,7 @@
+﻿.env
+.env.*
+__pycache__/
+*.pyc
+generated_pdfs/
+submitted_policies.json
+.DS_Store

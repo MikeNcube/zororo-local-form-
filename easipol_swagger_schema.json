@@ -1,0 +1,26 @@
+﻿# 1. Pull the raw layout text directly from your computer's clipboard memory
+$clipboardData = Get-Clipboard -Raw
+
+# 2. Check if the clipboard contains text data before saving
+if ([string
+]: :IsNullOrWhiteSpace($clipboardData)) {
+    Write-Host "]
+Inline Model 1 {
+BranchName (string, optional),
+FuneralFileNumber (string, optional),
+CustomerType (string, optional),
+PolicyNumber (string, optional),
+ClaimNumber (string, optional),
+DebtorFullName (string, optional),
+Relation (string, optional),
+DebtorID (string, optional),
+DebtorContactNumber (string, optional),
+DebtorAddress (string, optional),
+CustomerID (integer, optional)
+    } else {
+    # 3. Save the text cleanly onto your hard drive
+    $clipboardData | Out-File -FilePath "easipol_swagger_schema.json" -Encoding utf8
+    
+    Write-Host "`n✅ SUCCESS: Clipboard data intercepted and saved locally!" -ForegroundColor Green
+    Write-Host "📁 Open this file in VS Code to see your template: easipol_swagger_schema.json" -ForegroundColor Cyan
+    }
