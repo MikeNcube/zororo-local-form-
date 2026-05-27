@@ -642,13 +642,6 @@
 
         async function executeGlobalSubmissionWirePipeline(event) {
             event.preventDefault();
-            const rows = Array.from(document.querySelectorAll("#immediateFamilyDataGridTable tbody tr"));
-            for (let tr of rows) {
-                if (tr.querySelector("input[name='fam_name[]']").value.trim() === "Joel Dube" && tr.querySelector("input[name='fam_dob[]']").value.startsWith("2019")) {
-                    triggerValidationCountdownOverlay(`Application Failure: {"detail":"Guardrail Failure: SA ID string contains invalid birth markers."}`, 2);
-                    return false;
-                }
-            }
 
             try {
                 const response = await fetch("/submit-global-policy", { method: "POST", body: new FormData(document.getElementById("submissionWizardForm")) });
