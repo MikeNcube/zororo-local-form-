@@ -81,6 +81,54 @@ async def serve_wwfp_form():
     )
 
 
+@app.get("/terms-and-conditions", response_class=HTMLResponse)
+async def serve_terms_and_conditions():
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Terms & Conditions</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50 p-8 font-sans">
+        <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6">Zororo Phumulani Terms & Conditions</h1>
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">1. Introduction</h2>
+            <p class="mb-4 text-gray-700">Welcome to Zororo Phumulani. These Terms and Conditions govern your use of our digital application form and the services provided through it. By accessing or using our services, you agree to be bound by these Terms.</p>
+            
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">2. Eligibility</h2>
+            <p class="mb-4 text-gray-700">You must be at least 18 years old and a legal resident of the country where the policy is issued to use our services. By proceeding, you confirm that you meet these eligibility requirements.</p>
+
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">3. Application Process</h2>
+            <p class="mb-4 text-gray-700">The digital application form requires accurate and complete information. Any false or misleading information may result in the denial or termination of your policy. All data submitted is subject to our Privacy Policy.</p>
+            
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">4. Policy Acceptance</h2>
+            <p class="mb-4 text-gray-700">Submission of this form does not guarantee policy acceptance. All applications are subject to underwriting approval by Zororo Phumulani, which may include a waiting period. You will be notified of your application status via your provided contact details.</p>
+
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">5. Premiums and Payments</h2>
+            <p class="mb-4 text-gray-700">Policy premiums are calculated based on your selected cover options and personal details. Payments must be made via approved methods (e.g., debit order, Pay@). Failure to make timely payments may lead to policy lapse.</p>
+
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">6. Communication</h2>
+            <p class="mb-4 text-gray-700">By providing your contact details, you consent to receive communications from Zororo Phumulani regarding your application, policy, and related services, based on your opt-in preferences.</p>
+
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">7. Legal Declarations</h2>
+            <p class="mb-4 text-gray-700">You acknowledge and agree to all legal declarations made during the application process, including the Terms & Conditions Acceptance, Needs Analysis Waiver, and Mandated Intermediary Appointment.</p>
+            
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">8. Privacy Policy</h2>
+            <p class="mb-4 text-gray-700">Your privacy is important to us. Our Privacy Policy details how we collect, use, and protect your personal information. By using our services, you agree to our <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a>.</p>
+
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">9. Amendments</h2>
+            <p class="mb-4 text-gray-700">Zororo Phumulani reserves the right to amend these Terms and Conditions at any time. Updates will be posted on our website. Continued use of our services constitutes acceptance of the revised Terms.</p>
+
+            <p class="text-sm text-gray-600 mt-8">Last Updated: May 27, 2026</p>
+        </div>
+    </body>
+    </html>
+    """
+
 @app.post("/submit-global-policy")
 async def submit_policy(
     request: Request,
@@ -177,14 +225,34 @@ async def submit_policy(
     c.drawString(45, 755, f"STATUS: {policy_number}")
     c.drawString(45, 737, f"BILLING LINKAGE: {payat_number}")
     c.setFont("Helvetica", 10)
-    c.drawString(45, 705, f"Proposer Demographics: {title} {fname} {lname} (Gender: {gender})")
+    c.drawString(45, 705, f"Proposer Demographics: {title} {fname} {lname} (Gender: {gender}, Marital Status: {marital_status})")
     c.drawString(45, 687, f"Identity Profile Value: {identity_value} ({id_doc_type})")
-    c.drawString(45, 669, f"Country of Residence: {country_of_residence if country_of_residence else 'N/A'}")
-    c.drawString(45, 651, f"Product Type: {product_type.replace('_', ' ').title()}")
-    c.drawString(45, 633, f"Cover Option Selection: {plan_name}")
-    c.drawString(45, 615, f"Calculated Premium Level: {local_total}")
+    current_y = 669
+    c.drawString(45, current_y, f"Country of Residence: {country_of_residence if country_of_residence else 'N/A'}")
+    current_y -= 18 # Space for next line
 
-    y = 600
+    # Conditionally display SADC specific country fields
+    if sadac_country_selection and country_of_origin:
+        c.drawString(45, current_y, f"SADC Country Selection: {sadac_country_selection}")
+        current_y -= 18
+        c.drawString(45, current_y, f"Country of Origin: {country_of_origin}")
+        current_y -= 18
+        c.drawString(45, current_y, f"Product Type: {product_type.replace('_', ' ').title()}")
+        current_y -= 18
+        c.drawString(45, current_y, f"Cover Option Selection: {plan_name}")
+        current_y -= 18
+        c.drawString(45, current_y, f"Calculated Premium Level: {local_total}")
+        current_y -= 18 # Ensure space for next section
+    else:
+        c.drawString(45, current_y, f"Product Type: {product_type.replace('_', ' ').title()}")
+        current_y -= 18
+        c.drawString(45, current_y, f"Cover Option Selection: {plan_name}")
+        current_y -= 18
+        c.drawString(45, current_y, f"Calculated Premium Level: {local_total}")
+        current_y -= 18 # Ensure space for next section
+
+    # Calculate starting y for IMMEDIATE DEPENDENTS based on current_y
+    y = current_y - 30 # Add a buffer space
     c.setFont("Helvetica-Bold", 10)
     c.drawString(45, y, "IMMEDIATE DEPENDENTS LIVES ATTACHED:")
     c.setFont("Helvetica", 9)

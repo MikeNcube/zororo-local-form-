@@ -18,6 +18,16 @@
         .slide.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .guardrail-error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.875rem; }
+        /* Custom styles for more distinct input borders */
+        input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select {
+            border-width: 1.5px; /* Slightly thicker border */
+            border-color: #d1d5db; /* Tailwind's gray-300 */
+        }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus, input[type="date"]:focus, select:focus {
+            border-color: #0d9488; /* Teal-600 focus ring */
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2); /* Light teal shadow */
+            outline: none; /* Remove default outline */
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col justify-between">
@@ -112,12 +122,35 @@
                         <div class="md:col-span-2"><label id="idInputLabelNode" class="block text-xs font-bold text-gray-700 mb-1 uppercase">SA ID Number *</label><input type="text" name="identity_value" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Date of Birth *</label><input type="date" name="dob" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Gender *</label><select name="gender" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Marital Status *</label><select name="marital_status" required class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none" onchange="handleMaritalStatusChange()">
+                            <option value="">-- Select Status --</option>
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                            <option value="Divorced">Divorced</option>
+                            <option value="Widowed">Widowed</option>
+                        </select></div>
                         <div id="countryOfResidenceField" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Residence *</label>
-                            <input type="text" name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" placeholder="e.g. United Kingdom">
+                            <input type="text" name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" placeholder="e.g. United Kingdom" onkeyup="runPremiumPriceCalculatorEngine()" onchange="runPremiumPriceCalculatorEngine()">
+                        </div>                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country Origin Tier *</label><input type="text" name="residence" value="{{CONTEXT_FLAG}}" readonly class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 font-bold text-gray-500 outline-none"></div>
+                        
+                        <div id="sadacCountrySelectionFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">SADC Country Selection *</label>
+                                <select id="sadcCountrySelect" name="sadac_country_selection" class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none">
+                                    <option value="">-- Select SADC Country --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Origin *</label>
+                                <select id="countryOriginSelect" name="country_of_origin" class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none">
+                                    <option value="">-- Select Country of Origin --</option>
+                                </select>
+                            </div>
                         </div>
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country Origin Tier *</label><input type="text" name="residence" value="{{CONTEXT_FLAG}}" readonly class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 font-bold text-gray-500 outline-none"></div>
+
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Mobile Phone *</label><input type="tel" name="phone" placeholder="e.g. 0712345678" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+
                         <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Physical Residential Address *</label><input type="text" name="address" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Email Address *</label><input type="email" name="email" required placeholder="proposer@domain.com" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                     </div>
@@ -157,7 +190,19 @@
                     </div>
                     
                     <div class="space-y-3">
-                        <label class="text-xs font-black text-gray-800 uppercase block tracking-wide">Immediate Family Dependencies (Max 1 Spouse / Max 6 Children)</label>
+                        <label class="text-xs font-black text-gray-800 uppercase block tracking-wide">Immediate Family Dependencies</label>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex-1 border border-teal-200 bg-teal-50 rounded-xl p-4 space-y-2">
+                                <h4 class="font-bold text-teal-700 text-sm">Spouse Details (Max 1)</h4>
+                                <p class="text-xs text-teal-600">Add details for your legal spouse.</p>
+                                <button type="button" onclick="injectDependentRowElement('Spouse')" class="bg-teal-600 text-white font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-teal-700 transition w-full">&plus; Add Spouse</button>
+                            </div>
+                            <div class="flex-1 border border-slate-200 bg-slate-50 rounded-xl p-4 space-y-2">
+                                <h4 class="font-bold text-slate-700 text-sm">Children Details (Max 6)</h4>
+                                <p class="text-xs text-slate-600">Add details for your dependent children.</p>
+                                <button type="button" onclick="injectDependentRowElement('Child')" class="bg-slate-600 text-white font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-slate-700 transition w-full">&plus; Add Child</button>
+                            </div>
+                        </div>
                         <div class="border rounded-xl bg-white overflow-hidden max-h-[220px] overflow-y-auto">
                             <table class="w-full text-left text-sm" id="immediateFamilyDataGridTable">
                                 <thead class="bg-gray-50 text-xs font-bold text-gray-500 uppercase border-b">
@@ -165,10 +210,6 @@
                                 </thead>
                                 <tbody class="divide-y"></tbody>
                             </table>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" onclick="injectDependentRowElement('Spouse')" class="bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-teal-100 transition">&plus; Add Spouse</button>
-                            <button type="button" onclick="injectDependentRowElement('Child')" class="bg-slate-100 border text-slate-700 font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-slate-200 transition">&plus; Add Child</button>
                         </div>
                     </div>
 
@@ -209,7 +250,13 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Bank Name *</label><select id="bankNameNode" name="bank_name" onchange="runUniversalBranchPopulator()" class="p-3 border rounded-xl bg-white outline-none"><option value="">-- Select Bank --</option><option value="Capitec">Capitec Bank</option><option value="FNB">First National Bank (FNB)</option><option value="Standard Bank">Standard Bank</option><option value="ABSA">ABSA</option><option value="Nedbank">Nedbank</option></select></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder Name *</label><input type="text" id="accHolderField" name="account_name" class="p-3 border rounded-xl bg-white outline-none"></div>
-                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Number *</label><input type="text" id="accNumField" name="account_num" class="p-3 border rounded-xl bg-white outline-none"></div>
+                            <div class="flex flex-col">
+                                <label class="text-xs font-bold text-gray-600 mb-1">Account Number *</label>
+                                <div class="relative flex items-center">
+                                    <input type="text" id="accNumField" name="account_num" class="p-3 pr-16 border rounded-xl bg-white outline-none w-full">
+                                    <button type="button" onclick="validateAccount()" class="absolute right-0 top-0 bottom-0 px-3 text-sm bg-teal-500 hover:bg-teal-600 text-white rounded-r-xl">Validate</button>
+                                </div>
+                            </div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Branch Code *</label><input type="text" id="branchCodeField" name="branch_code" readonly class="p-3 border border-dashed rounded-xl bg-slate-100 font-bold text-slate-500 outline-none"></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Type *</label><select name="account_type" class="p-3 border rounded-xl bg-white outline-none"><option value="Current">Current / Cheque Account</option><option value="Savings">Savings Account</option><option value="Transmission">Transmission Account</option></select></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder's Contact Number *</label><input type="tel" name="acc_holder_phone" required class="p-3 border rounded-xl bg-white outline-none"></div>
@@ -236,7 +283,7 @@
                     </div>
 
                     <div class="space-y-3 p-4 bg-slate-50 border rounded-xl">
-                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" name="terms_acceptance" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above.</span></label>
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" name="terms_acceptance" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above. <a href="/terms-and-conditions" target="_blank" class="text-blue-600 hover:underline">Read full Terms & Conditions</a>.</span></label>
                         <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="needsAnalysisWaiver" name="needs_analysis_waiver" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I acknowledge receipt of the Needs Analysis Waiver and understand my rights.</span></label>
                         <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="intermediaryAppointment" name="intermediary_appointment" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I confirm the appointment of the mandated intermediary for this policy.</span></label>
                     </div>
@@ -270,41 +317,73 @@
         let currentActiveSlideIdx = 1;
         const bankUniversalBranchCodes = { "Capitec": "470010", "FNB": "250655", "Standard Bank": "051001", "ABSA": "632005", "Nedbank": "198765" };
         
+        const sadcCountries = [
+            "Botswana", "Lesotho", "Namibia", "Zimbabwe", "Zambia", "Mozambique", "Malawi", 
+            "Angola", "Tanzania", "Eswatini", "DRC", "Madagascar", "Mauritius", "Seychelles", "Comoros"
+        ];
+
+        const exchangeRates = {
+            "United Kingdom": { rate: 23.5, symbol: "£" },
+            "UK": { rate: 23.5, symbol: "£" },
+            "United States": { rate: 18.5, symbol: "$" },
+            "USA": { rate: 18.5, symbol: "$" },
+            "US": { rate: 18.5, symbol: "$" },
+            "Canada": { rate: 13.5, symbol: "$" },
+            "Europe": { rate: 20.0, symbol: "€" },
+            "Ireland": { rate: 20.0, symbol: "€" },
+            "Germany": { rate: 20.0, symbol: "€" },
+            "France": { rate: 20.0, symbol: "€" },
+            "Australia": { rate: 12.0, symbol: "$" },
+            "New Zealand": { rate: 11.0, symbol: "$" }
+        };
+
         const priceMatrixMap = {
             local: {
                 family: [
-                    {v: "LOCAL_F_R2000|50", t: "R2,000 Family Cover (R50.00)"},
-                    {v: "LOCAL_F_R5000|90", t: "R5,000 Family Cover (R90.00)"},
+                    {v: "LOCAL_F_R2000|89", t: "R2,000 Family Cover (R89.00)"},
+                    {v: "LOCAL_F_R5000|129", t: "R5,000 Family Cover (R129.00)"},
                     {v: "LOCAL_F_R10000|169", t: "R10,000 Family Cover (R169.00)"},
                     {v: "LOCAL_F_R15000|209", t: "R15,000 Family Cover (R209.00)"},
-                    {v: "LOCAL_F_R18000|239", t: "R18,000 Family Cover (R239.00)"},
+                    {v: "LOCAL_F_R18000|229", t: "R18,000 Family Cover (R229.00)"},
                     {v: "LOCAL_F_R25000|279", t: "R25,000 Family Cover (R279.00)"},
                     {v: "LOCAL_F_R30000|299", t: "R30,000 Family Cover (R299.00)"}
                 ],
                 single: [
-                    {v: "LOCAL_S_R2000|30", t: "R2,000 Single Cover (R30.00)"},
-                    {v: "LOCAL_S_R5000|60", t: "R5,000 Single Cover (R60.00)"},
-                    {v: "LOCAL_S_R10000|110", t: "R10,000 Single Cover (R110.00)"},
-                    {v: "LOCAL_S_R15000|150", t: "R15,000 Single Cover (R150.00)"},
-                    {v: "LOCAL_S_R18000|180", t: "R18,000 Single Cover (R180.00)"},
-                    {v: "LOCAL_S_R25000|220", t: "R25,000 Single Cover (R220.00)"},
-                    {v: "LOCAL_S_R30000|250", t: "R30,000 Single Cover (R250.00)"}
+                    {v: "LOCAL_S_R2000|79", t: "R2,000 Single Cover (R79.00)"},
+                    {v: "LOCAL_S_R5000|119", t: "R5,000 Single Cover (R119.00)"},
+                    {v: "LOCAL_S_R10000|159", t: "R10,000 Single Cover (R159.00)"},
+                    {v: "LOCAL_S_R15000|199", t: "R15,000 Single Cover (R199.00)"},
+                    {v: "LOCAL_S_R18000|209", t: "R18,000 Single Cover (R209.00)"},
+                    {v: "LOCAL_S_R25000|259", t: "R25,000 Single Cover (R259.00)"},
+                    {v: "LOCAL_S_R30000|289", t: "R30,000 Single Cover (R289.00)"}
                 ]
             },
             sadac: {
-                family: [{v: "SADC_F_R30000|299", t: "SADC R30k Family Plan (R299.00)"}],
-                single: [{v: "SADC_S_R30000|250", t: "SADC R30k Single Plan (R250.00)"}]
+                family: [
+                    {v: "SADC_F_R10000|169", t: "SADC R10,000 Family Plan (R169.00)"},
+                    {v: "SADC_F_R15000|209", t: "SADC R15,000 Family Plan (R209.00)"},
+                    {v: "SADC_F_R18000|229", t: "SADC R18,000 Family Plan (R229.00)"},
+                    {v: "SADC_F_R25000|279", t: "SADC R25,000 Family Plan (R279.00)"},
+                    {v: "SADC_F_R30000|299", t: "SADC R30,000 Family Plan (R299.00)"}
+                ],
+                single: [
+                    {v: "SADC_S_R10000|159", t: "SADC R10,000 Single Plan (R159.00)"},
+                    {v: "SADC_S_R15000|199", t: "SADC R15,000 Single Plan (R199.00)"},
+                    {v: "SADC_S_R18000|209", t: "SADC R18,000 Single Plan (R209.00)"},
+                    {v: "SADC_S_R25000|259", t: "SADC R25,000 Single Plan (R259.00)"},
+                    {v: "SADC_S_R30000|289", t: "SADC R30,000 Single Plan (R289.00)"}
+                ]
             },
             wwfp: {
                 family: [
-                    {v: "WWFP_PREMIUM_F|540", t: "Premium R45k Diaspora Family (R540.00)"},
-                    {v: "WWFP_PRESTIGE_F|750", t: "Prestige R75k Diaspora Family (R750.00)"},
-                    {v: "WWFP_EXECUTIVE_F|900", t: "Executive R90k Diaspora Family (R900.00)"}
+                    {v: "WWFP_PREMIUM_F|540", t: "Premium R45,000 Diaspora Family (R540.00)"},
+                    {v: "WWFP_PRESTIGE_F|720", t: "Prestige R75,000 Diaspora Family (R720.00)"},
+                    {v: "WWFP_EXECUTIVE_F|1080", t: "Executive R90,000 Diaspora Family (R1080.00)"}
                 ],
                 single: [
-                    {v: "WWFP_PREMIUM_S|450", t: "Premium R45k Diaspora Single (R450.00)"},
-                    {v: "WWFP_PRESTIGE_S|600", t: "Prestige R75k Diaspora Single (R600.00)"},
-                    {v: "WWFP_EXECUTIVE_S|750", t: "Executive R90k Diaspora Single (R750.00)"}
+                    {v: "WWFP_PREMIUM_S|450", t: "Premium R45,000 Diaspora Single (R450.00)"},
+                    {v: "WWFP_PRESTIGE_S|630", t: "Prestige R75,000 Diaspora Single (R630.00)"},
+                    {v: "WWFP_EXECUTIVE_S|990", t: "Executive R90,000 Diaspora Single (R990.00)"}
                 ]
             }
         };
@@ -323,12 +402,83 @@
         function toggleDebitFieldsViewBox() { document.getElementById("debitAuthorizationMandateFieldsBox").classList.toggle("hidden", document.getElementById("paymentMethodSelector").value !== "Debit Order"); }
         function runUniversalBranchPopulator() { document.getElementById("branchCodeField").value = bankUniversalBranchCodes[document.getElementById("bankNameNode").value] || ""; }
 
+        function populateSadcCountryDropdowns() {
+            const sadcCountrySelect = document.getElementById("sadcCountrySelect");
+            const countryOriginSelect = document.getElementById("countryOriginSelect");
+
+            sadcCountrySelect.innerHTML = '<option value="">-- Select SADC Country --</option>';
+            countryOriginSelect.innerHTML = '<option value="">-- Select Country of Origin --</option>';
+
+            sadcCountries.forEach(country => {
+                const option1 = document.createElement("option");
+                option1.value = country;
+                option1.textContent = country;
+                sadcCountrySelect.appendChild(option1);
+
+                const option2 = document.createElement("option");
+                option2.value = country;
+                option2.textContent = country;
+                countryOriginSelect.appendChild(option2);
+            });
+        }
+
+        function handleSadacFormUI() {
+            const sadacCountrySelectionFields = document.getElementById("sadacCountrySelectionFields");
+            const sadcCountrySelect = document.getElementById("sadcCountrySelect");
+            const countryOriginSelect = document.getElementById("countryOriginSelect");
+            const productTypeToggle = document.querySelector('input[name="product_type"]').closest('.bg-gray-50.border');
+
+            if (currentPathTierMarkerKey === 'sadac') {
+                sadacCountrySelectionFields.classList.remove("hidden");
+                sadcCountrySelect.setAttribute("required", "required");
+                countryOriginSelect.setAttribute("required", "required");
+                if (productTypeToggle) {
+                    productTypeToggle.classList.add("hidden");
+                }
+            } else {
+                sadacCountrySelectionFields.classList.add("hidden");
+                sadcCountrySelect.removeAttribute("required");
+                countryOriginSelect.removeAttribute("required");
+                sadcCountrySelect.value = "";
+                countryOriginSelect.value = "";
+                if (productTypeToggle) {
+                    productTypeToggle.classList.remove("hidden");
+                }
+            }
+        }
+
+        function handleMaritalStatusChange() {
+            const maritalStatus = document.querySelector('select[name="marital_status"]').value;
+            const spouseSection = document.querySelector('.flex-1.border.border-teal-200'); // Container for spouse add button
+            const childrenSection = document.querySelector('.flex-1.border.border-slate-200'); // Container for children add button
+            const immediateFamilyTable = document.getElementById("immediateFamilyDataGridTable");
+
+            if (maritalStatus === "Single") {
+                // Hide spouse and children sections
+                if (spouseSection) spouseSection.classList.add("hidden");
+                if (childrenSection) childrenSection.classList.add("hidden");
+                
+                // Clear existing spouse/child entries from the table
+                const tbody = immediateFamilyTable.querySelector("tbody");
+                Array.from(tbody.children).forEach(row => {
+                    const relationInput = row.querySelector("input[name='fam_relation[]']");
+                    if (relationInput && (relationInput.value === "Spouse" || relationInput.value === "Child")) {
+                        row.remove();
+                    }
+                });
+            } else {
+                // Show spouse and children sections
+                if (spouseSection) spouseSection.classList.remove("hidden");
+                if (childrenSection) childrenSection.classList.remove("hidden");
+            }
+        }
+
         function handleProductTypeChange() {
-            const productType = document.querySelector('input[name="product_type"]:checked').value;
+            const productType = document.querySelector('input[name="product_type"]:checked'); // Get the checked radio button
             const countryOfResidenceFieldDiv = document.getElementById("countryOfResidenceField");
             const countryOfResidenceInput = countryOfResidenceFieldDiv.querySelector('input[name="country_of_residence"]');
 
-            if (productType === "wwfp") {
+            if (productType && productType.value === "wwfp") { // Check if productType is not null and its value is "wwfp"
                 countryOfResidenceFieldDiv.classList.remove("hidden");
                 countryOfResidenceInput.setAttribute("required", "required");
             } else {
@@ -344,11 +494,16 @@
             const dropdownNode = document.getElementById("productPlan");
             dropdownNode.innerHTML = ""; // Clear existing options
 
-            const productType = document.querySelector('input[name="product_type"]:checked').value;
             const planType = document.querySelector('input[name="plan_type"]:checked').value;
+            let plansKey;
+
+            if (currentPathTierMarkerKey === 'sadac') {
+                plansKey = 'sadac';
+            } else {
+                const productType = document.querySelector('input[name="product_type"]:checked').value;
+                plansKey = productType === "standard" ? "local" : "wwfp";
+            }
             
-            // Map productType to the keys in priceMatrixMap
-            const plansKey = productType === "standard" ? "local" : "wwfp"; // 'standard' maps to 'local', 'wwfp' maps to 'wwfp'
             const plans = priceMatrixMap[plansKey][planType];
 
             plans.forEach(opt => {
@@ -382,24 +537,74 @@
                     <td class="p-2"><input type="text" name="ext_fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2"><input type="date" name="ext_fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2">
-                        <select name="ext_fam_cover[]" required class="w-full p-2 border rounded-lg outline-none">
-                            <option value="2000">R2,000</option>
-                            <option value="3000">R3,000</option>
-                            <option value="4000">R4,000</option>
-                            <option value="5000">R5,000</option>
+                        <select name="ext_fam_cover[]" required class="w-full p-2 pr-8 border rounded-lg outline-none" onchange="runPremiumPriceCalculatorEngine()">
+                            <option value="60">R2,000 (R60)</option>
+                            <option value="80">R3,000 (R80)</option>
+                            <option value="110">R4,000 (R110)</option>
+                            <option value="220">R5,000 (R220)</option>
                         </select>
                     </td>
-                    <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
+                    <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove(); runPremiumPriceCalculatorEngine();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
                 </tr>
             `);
+            runPremiumPriceCalculatorEngine(); // Recalculate premium after adding a row
         }
 
 
         function runPremiumPriceCalculatorEngine() {
-            const val = document.getElementById("productPlan").value; if (!val) return;
-            const amt = val.split("|")[1];
-            document.getElementById("premiumPriceDisplayNode").innerText = "R " + amt + ".00";
-            document.getElementById("hiddenPremiumInputTracker").value = "R " + amt + ".00";
+            const productPlanSelect = document.getElementById("productPlan");
+            let basePremium = 0;
+            if (productPlanSelect.value) {
+                basePremium = parseFloat(productPlanSelect.value.split("|")[1]);
+            }
+
+            let extendedFamilyPremium = 0;
+            const extendedFamilyRows = document.querySelectorAll("#extendedFamilyDataGridTable tbody tr");
+            extendedFamilyRows.forEach(row => {
+                const coverSelect = row.querySelector("select[name='ext_fam_cover[]']");
+                if (coverSelect && coverSelect.value) {
+                    extendedFamilyPremium += parseFloat(coverSelect.value);
+                }
+            });
+
+            let totalPremiumZAR = basePremium + extendedFamilyPremium;
+            let displayText = `R ${totalPremiumZAR.toFixed(2)}`;
+
+            if (currentPathTierMarkerKey === 'wwfp') {
+                const countryOfResidenceInput = document.querySelector('input[name="country_of_residence"]');
+                const country = countryOfResidenceInput ? countryOfResidenceInput.value.trim() : '';
+                
+                let convertedAmount = 0;
+                let currencySymbol = '';
+                const rateInfo = exchangeRates[country];
+
+                if (rateInfo) {
+                    convertedAmount = totalPremiumZAR / rateInfo.rate;
+                    currencySymbol = rateInfo.symbol;
+                    displayText += ` (Approx. ${currencySymbol}${convertedAmount.toFixed(2)} local currency)`;
+                } else if (country !== '') { // If country is entered but not found in rates
+                     displayText += ` (No exchange rate for ${country})`;
+                }
+            }
+            
+            document.getElementById("premiumPriceDisplayNode").innerText = displayText;
+            document.getElementById("hiddenPremiumInputTracker").value = `R ${totalPremiumZAR.toFixed(2)}`; // Always submit ZAR to backend
+        }
+
+        function validateAccount() {
+            const accountNumber = document.getElementById("accNumField").value;
+            const bankName = document.getElementById("bankNameNode").value;
+            if (!accountNumber || !bankName) {
+                alert("Please enter both Account Number and select a Bank Name before validating.");
+                return;
+            }
+            // Simulate API call for validation
+            const isValid = accountNumber.length >= 7 && accountNumber.length <= 12 && !isNaN(accountNumber); // Simple numeric length check
+            if (isValid) {
+                alert(`Account ${accountNumber} with ${bankName} is valid! (Simulated)`);
+            } else {
+                alert(`Account ${accountNumber} with ${bankName} is NOT valid. Please check details. (Simulated)`);
+            }
         }
 
         function triggerValidationCountdownOverlay(messageText, returnToSlideIdx) {
@@ -473,9 +678,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            handleProductTypeChange(); // Initialize product type and plan options
+            populateSadcCountryDropdowns(); // Populate SADC country dropdowns
+            handleSadacFormUI(); // Handle SADAC specific UI (hides product type toggle for SADAC, shows/hides SADC country fields)
+            handleMaritalStatusChange(); // Initialize marital status based on default selection
+            handleProductTypeChange(); // Initialize product type and plan options (will also call populateProductPlans)
             changeSlideView(1);
-            injectDependentRowElement('Child');
+            // injectDependentRowElement('Child'); // Initial child injection should be removed or conditionally handled
         });
     </script>
 </body>
