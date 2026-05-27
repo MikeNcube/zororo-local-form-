@@ -108,7 +108,7 @@
             </div>
         </div>
 
-        <form id="submissionWizardForm" onsubmit="executeGlobalSubmissionWirePipeline(event)" enctype="multipart/form-data">
+        <form id="submissionWizardForm" onsubmit="executeGlobalSubmissionWirePipeline(event)" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="form_context_origin_marker" id="hiddenFormContextField">
 
             <div class="slide active" data-slide="1">
@@ -315,6 +315,41 @@
 
     <script>
         let currentActiveSlideIdx = 1;
+        let formState = {}; // Single source of truth for form data
+
+        function saveFormData() {
+            const form = document.getElementById("submissionWizardForm");
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.name && input.type !== 'file') { // Exclude file inputs
+                    if (input.type === 'checkbox') {
+                        formState[input.name] = input.checked;
+                    } else if (input.type === 'radio') {
+                        // Radio buttons will be handled by explicit check outside this loop
+                    } else {
+                        formState[input.name] = input.value;
+                    }
+                }
+            });
+            // Better handling for array inputs (e.g., fam_name[], ext_fam_fname[])
+            const arrayFields = ['fam_relation[]', 'fam_fname[]', 'fam_lname[]', 'fam_dob[]', 
+                                 'ext_fam_relation[]', 'ext_fam_fname[]', 'ext_fam_lname[]', 'ext_fam_dob[]', 'ext_fam_cover[]'];
+            arrayFields.forEach(fieldName => {
+                formState[fieldName] = Array.from(document.querySelectorAll(`[name="${fieldName}"]`)).map(el => el.value);
+            });
+
+            // Handle radio buttons more robustly for all states, not just checked state
+            const radioButtons = form.querySelectorAll('input[type="radio"]');
+            radioButtons.forEach(radio => {
+                if (radio.name && radio.checked) {
+                    formState[radio.name] = radio.value;
+                }
+            });
+        }
+
+        // Placeholder for loadFormData for now, as the primary issue is submission
+        // function loadFormData() { ... }
+        
         const bankUniversalBranchCodes = { "Capitec": "470010", "FNB": "250655", "Standard Bank": "051001", "ABSA": "632005", "Nedbank": "198765" };
         
         const sadcCountries = [
@@ -625,6 +660,9 @@
         }
 
         function changeSlideView(targetSlideIdx) {
+            // Save current slide's form data before changing view
+            saveFormData();
+
             if (targetSlideIdx === 4 && !validateDebitOrderConstraints()) return;
             document.querySelectorAll(".slide").forEach(s => s.classList.remove("active"));
             document.querySelector(`[data-slide="${targetSlideIdx}"]`).classList.add("active");
@@ -641,16 +679,46 @@
         }
 
         async function executeGlobalSubmissionWirePipeline(event) {
-            event.preventDefault();
+            event.preventDefault(); // Prevent default HTML form submission
+
+            const submissionForm = document.getElementById("submissionWizardForm");
 
             try {
-                const response = await fetch("/submit-global-policy", { method: "POST", body: new FormData(document.getElementById("submissionWizardForm")) });
+                // Ensure latest data from current slide is saved before final submission
+                saveFormData(); 
+
+                const formData = new FormData();
+                for (const key in formState) {
+                    if (Array.isArray(formState[key])) {
+                        formState[key].forEach(value => formData.append(key, value));
+                    } else {
+                        formData.append(key, formState[key]);
+                    }
+                }
+                // Append file inputs separately
+                const fileInputs = submissionForm.querySelectorAll('input[type="file"]');
+                fileInputs.forEach(fileInput => {
+                    if (fileInput.files.length > 0) {
+                        formData.append(fileInput.name, fileInput.files[0]);
+                    }
+                });
+
+                const response = await fetch("/submit-global-policy", { method: "POST", body: formData });
+                
                 if (!response.ok) {
                     const err = await response.json();
-                    triggerValidationCountdownOverlay(err.detail || "Validation Error Caught", 1);
+                    console.error("Submission failed on backend validation. Details:", err.detail || err); // Log the error
+                    
+                    // Force success view for debug as requested, but indicate failure
+                    document.getElementById("submissionWizardForm").classList.add("hidden");
+                    document.getElementById("livePlatformSuccessView").classList.remove("hidden");
+                    document.getElementById("outboundPolicyIdDisplayNode").innerText = "FAILURE-DEBUG";
+                    document.getElementById("outboundBillingRefDisplayNode").innerText = err.detail || "Backend Validation Error";
+                    alert(`🚨 Submission failed due to backend validation: ${err.detail || 'Unknown error'}. Forcing success view for debug.`);
                     return false;
                 }
 
+                // Successful submission flow
                 const livePolicyId = response.headers.get("X-Easipol-Policy-Number");
                 const liveBillingId = response.headers.get("X-Easipol-Billing-Reference");
                 const pdfBlob = await response.blob();
@@ -664,10 +732,19 @@
                 link.setAttribute("download", `Zororo_Presentation_Preview_Booklet.pdf`);
                 
                 document.getElementById("livePlatformSuccessView").classList.remove("hidden");
+                
             } catch (err) {
-                alert("🚨 Outbound network transport gateway connection timeout.");
+                // Client-side JS error or network error before/during fetch
+                console.error("Submission bypassed block due to client-side or network error:", err); // Log the error
+                alert("🚨 An unexpected client-side or network error occurred. Check console for details. Forcing success view for debug.");
+
+                // Force success view for debug
+                document.getElementById("submissionWizardForm").classList.add("hidden");
+                document.getElementById("livePlatformSuccessView").classList.remove("hidden");
+                document.getElementById("outboundPolicyIdDisplayNode").innerText = "CLIENT-ERROR";
+                document.getElementById("outboundBillingRefDisplayNode").innerText = err.message || "Network/Client Error";
             }
-            return false;
+            return false; // Prevent any further default submission behavior
         }
 
         document.addEventListener('DOMContentLoaded', () => {
