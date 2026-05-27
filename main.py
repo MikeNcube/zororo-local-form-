@@ -27,6 +27,8 @@ os.makedirs(PDF_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs("templates", exist_ok=True)
 
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 if not os.path.exists(REGISTRY_FILE):
     with open(REGISTRY_FILE, "w") as f:
         json.dump([], f)
@@ -82,9 +84,12 @@ async def serve_wwfp_form():
 @app.post("/submit-global-policy")
 async def submit_policy(
     request: Request,
+    product_type: str = Form(...),
     title: str = Form(...),
     fname: str = Form(...),
     lname: str = Form(...),
+    gender: str = Form(...),
+    country_of_residence: str = Form(default=""),
     id_doc_type: str = Form(...),
     identity_value: str = Form(...),
     phone: str = Form(...),
@@ -95,15 +100,34 @@ async def submit_policy(
     email: str = Form(...),
     dob: str = Form(...),
     address: str = Form(...),
+    ben_fname: str = Form(...),
+    ben_lname: str = Form(...),
+    ben_rel: str = Form(...),
+    ben_phone: str = Form(...),
     bank_name: str = Form(default=""),
     account_name: str = Form(default=""),
     account_num: str = Form(default=""),
     branch_code: str = Form(default=""),
     account_type: str = Form(default="Current"),
+    acc_holder_phone: str = Form(default=""),
+    commencement_date: str = Form(default=""),
     deduction_date: str = Form(default="1"),
     fam_relation: List[str] = Form(default=[]),
-    fam_name: List[str] = Form(default=[]),
+    fam_fname: List[str] = Form(default=[]),
+    fam_lname: List[str] = Form(default=[]),
     fam_dob: List[str] = Form(default=[]),
+    ext_fam_relation: List[str] = Form(default=[]),
+    ext_fam_fname: List[str] = Form(default=[]),
+    ext_fam_lname: List[str] = Form(default=[]),
+    ext_fam_dob: List[str] = Form(default=[]),
+    ext_fam_cover: List[str] = Form(default=[]),
+    optin_phone: bool = Form(False),
+    optin_sms: bool = Form(False),
+    optin_email: bool = Form(False),
+    optin_whatsapp: bool = Form(False),
+    terms_acceptance: bool = Form(...),
+    needs_analysis_waiver: bool = Form(...),
+    intermediary_appointment: bool = Form(...),
     passport_doc: UploadFile = File(default=None),
     tsf_doc: UploadFile = File(default=None),
 ):
@@ -153,22 +177,24 @@ async def submit_policy(
     c.drawString(45, 755, f"STATUS: {policy_number}")
     c.drawString(45, 737, f"BILLING LINKAGE: {payat_number}")
     c.setFont("Helvetica", 10)
-    c.drawString(45, 705, f"Proposer Demographics: {title} {fname} {lname}")
+    c.drawString(45, 705, f"Proposer Demographics: {title} {fname} {lname} (Gender: {gender})")
     c.drawString(45, 687, f"Identity Profile Value: {identity_value} ({id_doc_type})")
-    c.drawString(45, 669, f"Cover Option Selection: {plan_name}")
-    c.drawString(45, 651, f"Calculated Premium Level: {local_total}")
+    c.drawString(45, 669, f"Country of Residence: {country_of_residence if country_of_residence else 'N/A'}")
+    c.drawString(45, 651, f"Product Type: {product_type.replace('_', ' ').title()}")
+    c.drawString(45, 633, f"Cover Option Selection: {plan_name}")
+    c.drawString(45, 615, f"Calculated Premium Level: {local_total}")
 
     y = 600
     c.setFont("Helvetica-Bold", 10)
     c.drawString(45, y, "IMMEDIATE DEPENDENTS LIVES ATTACHED:")
     c.setFont("Helvetica", 9)
     has_dependents = False
-    for i in range(len(fam_name)):
-        if fam_name[i].strip():
+    for i in range(len(fam_fname)):
+        if fam_fname[i].strip() or fam_lname[i].strip(): # Check if either name part is present
             has_dependents = True
             y -= 18
             c.drawString(
-                45, y, f"- [{fam_relation[i]}] {fam_name[i]} (DOB: {fam_dob[i]})"
+                45, y, f"- [{fam_relation[i]}] {fam_fname[i]} {fam_lname[i]} (DOB: {fam_dob[i]})"
             )
     if not has_dependents:
         y -= 18
@@ -185,7 +211,25 @@ async def submit_policy(
     c.setFont("Helvetica-Bold", 10)
     c.drawString(45, 770, "NOMINATED ESTATE LEGAL CLAIM BENEFICIARY RELATIONSHIP:")
     c.setFont("Helvetica", 10)
-    c.drawString(45, 740, "Full Name Allocation: Estate Representative Default")
+    c.drawString(45, 740, f"Full Name: {ben_fname} {ben_lname}")
+    c.drawString(45, 725, f"Relationship: {ben_rel}")
+    c.drawString(45, 710, f"Contact Mobile: {ben_phone}")
+    
+    y_ext_fam = 680
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(45, y_ext_fam, "EXTENDED FAMILY COVER MEMBERS:")
+    c.setFont("Helvetica", 9)
+    has_ext_fam = False
+    for i in range(len(ext_fam_fname)):
+        if ext_fam_fname[i].strip() or ext_fam_lname[i].strip():
+            has_ext_fam = True
+            y_ext_fam -= 18
+            c.drawString(
+                45, y_ext_fam, f"- [{ext_fam_relation[i]}] {ext_fam_fname[i]} {ext_fam_lname[i]} (DOB: {ext_fam_dob[i]}) - Cover: R{ext_fam_cover[i]}"
+            )
+    if not has_ext_fam:
+        y_ext_fam -= 18
+        c.drawString(45, y_ext_fam, "None declared.")
 
     # PAGE 3: MANDATES & DISCLAIMER SIGN-OFF
     c.showPage()
@@ -206,20 +250,40 @@ async def submit_policy(
     c.drawString(
         45,
         745,
-        f"Settlement Selection Channel: {pay_method} (Deduction Date Option: {deduction_date})",
+        f"Settlement Selection Channel: {pay_method} (Deduction Date: {deduction_date})",
     )
     if pay_method == "Debit Order":
-        c.drawString(
-            45, 730, f"Banking Profile Account: {bank_name} - (Acc: {account_num})"
-        )
+        c.drawString(45, 730, f"Banking Profile Account: {account_name} - (Acc: {account_num}) (Type: {account_type})")
+        c.drawString(45, 715, f"Account Holder Phone: {acc_holder_phone}")
+        c.drawString(45, 700, f"Commencement Date: {commencement_date}")
+
+    y_optin = 660
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(45, y_optin, "COMMUNICATION OPT-INS:")
+    c.setFont("Helvetica", 9)
+    y_optin -= 15
+    c.drawString(45, y_optin, f"- Telephone: {'Yes' if optin_phone else 'No'}")
+    y_optin -= 15
+    c.drawString(45, y_optin, f"- SMS: {'Yes' if optin_sms else 'No'}")
+    y_optin -= 15
+    c.drawString(45, y_optin, f"- Email: {'Yes' if optin_email else 'No'}")
+    y_optin -= 15
+    c.drawString(45, y_optin, f"- WhatsApp: {'Yes' if optin_whatsapp else 'No'}")
+
+    y_legal = y_optin - 30
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(45, y_legal, "LEGAL DECLARATIONS:")
+    c.setFont("Helvetica", 9)
+    y_legal -= 15
+    c.drawString(45, y_legal, f"- Terms & Conditions Accepted: {'Yes' if terms_acceptance else 'No'}")
+    y_legal -= 15
+    c.drawString(45, y_legal, f"- Needs Analysis Waiver Acknowledged: {'Yes' if needs_analysis_waiver else 'No'}")
+    y_legal -= 15
+    c.drawString(45, y_legal, f"- Mandated Intermediary Appointed: {'Yes' if intermediary_appointment else 'No'}")
+    y_legal -= 15
     c.drawString(
         45,
-        680,
-        "• Underwriting Rules: 3 months waiting for immediate family, 6 months for extended lines.",
-    )
-    c.drawString(
-        45,
-        660,
+        y_legal,
         "• Legal Full Name Affirmation declaration confirmed: Signed by "
         + legal_name_confirm,
     )

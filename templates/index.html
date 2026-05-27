@@ -111,6 +111,11 @@
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">ID Type *</label><select id="idDocType" name="id_doc_type" onchange="toggleIdInputLabels()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="ID Number">SA ID Number</option><option value="Passport">Passport</option></select></div>
                         <div class="md:col-span-2"><label id="idInputLabelNode" class="block text-xs font-bold text-gray-700 mb-1 uppercase">SA ID Number *</label><input type="text" name="identity_value" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Date of Birth *</label><input type="date" name="dob" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Gender *</label><select name="gender" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                        <div id="countryOfResidenceField" class="hidden">
+                            <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Residence *</label>
+                            <input type="text" name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" placeholder="e.g. United Kingdom">
+                        </div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country Origin Tier *</label><input type="text" name="residence" value="{{CONTEXT_FLAG}}" readonly class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 font-bold text-gray-500 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Mobile Phone *</label><input type="tel" name="phone" placeholder="e.g. 0712345678" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Physical Residential Address *</label><input type="text" name="address" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
@@ -122,8 +127,32 @@
 
             <div class="slide" data-slide="2">
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
-                    <div class="flex flex-col bg-gray-50 border p-4 rounded-xl gap-1.5">
-                        <label class="text-xs font-black text-gray-700 uppercase">Select Target Insurance Cover Variant Plan *</label>
+                    <div class="bg-gray-50 border p-4 rounded-xl gap-1.5 space-y-3">
+                        <label class="text-xs font-black text-gray-700 uppercase">Select Product Type *</label>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="product_type" value="standard" class="form-radio h-4 w-4 text-teal-600" checked onchange="handleProductTypeChange()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Standard Funeral Plan</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="product_type" value="wwfp" class="form-radio h-4 w-4 text-teal-600" onchange="handleProductTypeChange()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">World Wide Funeral Plan</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex flex-col bg-gray-50 border p-4 rounded-xl gap-3">
+                        <label class="text-xs font-black text-gray-700 uppercase">Select Plan Type *</label>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="plan_type" value="family" class="form-radio h-4 w-4 text-teal-600" checked onchange="populateProductPlans()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Family Plan</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="plan_type" value="single" class="form-radio h-4 w-4 text-teal-600" onchange="populateProductPlans()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Single Plan</span>
+                            </label>
+                        </div>
+                        <label class="text-xs font-black text-gray-700 uppercase mt-2">Select Target Insurance Cover Variant Plan *</label>
                         <select id="productPlan" name="plan_name" onchange="runPremiumPriceCalculatorEngine()" class="w-full p-3 font-extrabold text-teal-700 border bg-white rounded-xl outline-none"></select>
                     </div>
                     
@@ -132,7 +161,7 @@
                         <div class="border rounded-xl bg-white overflow-hidden max-h-[220px] overflow-y-auto">
                             <table class="w-full text-left text-sm" id="immediateFamilyDataGridTable">
                                 <thead class="bg-gray-50 text-xs font-bold text-gray-500 uppercase border-b">
-                                    <tr><th class="p-3">Relationship</th><th class="p-3">Full Legal Name</th><th class="p-3">Date of Birth</th><th class="p-3 text-center">Action</th></tr>
+                                    <tr><th class="p-3">Relationship</th><th class="p-3">Name(s)</th><th class="p-3">Surname</th><th class="p-3">Date of Birth</th><th class="p-3 text-center">Action</th></tr>
                                 </thead>
                                 <tbody class="divide-y"></tbody>
                             </table>
@@ -143,10 +172,26 @@
                         </div>
                     </div>
 
+                    <div class="space-y-3 pt-6 border-t border-gray-100">
+                        <label class="text-xs font-black text-gray-800 uppercase block tracking-wide">Extended Family (Parents / Grandparents / Aunts / Uncles etc.)</label>
+                        <div class="border rounded-xl bg-white overflow-hidden max-h-[220px] overflow-y-auto">
+                            <table class="w-full text-left text-sm" id="extendedFamilyDataGridTable">
+                                <thead class="bg-gray-50 text-xs font-bold text-gray-500 uppercase border-b">
+                                    <tr><th class="p-3">Relationship</th><th class="p-3">Name(s)</th><th class="p-3">Surname</th><th class="p-3">Date of Birth</th><th class="p-3">Cover (R)</th><th class="p-3 text-center">Action</th></tr>
+                                </thead>
+                                <tbody class="divide-y"></tbody>
+                            </table>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="injectExtendedFamilyRowElement()" class="bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs py-2 px-4 rounded-lg shadow-sm hover:bg-blue-100 transition">&plus; Add Extended Family Member</button>
+                        </div>
+                    </div>
+
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4">
                         <h3 class="text-xs font-black text-gray-800 uppercase tracking-wide"><i class="fas fa-hand-holding-heart text-blue-500"></i> Nominated Estate Legal Claim Beneficiary Allocation</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Full Name *</label><input type="text" name="ben_name" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Name(s) *</label><input type="text" name="ben_fname" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Surname *</label><input type="text" name="ben_lname" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
                             <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Relationship *</label><input type="text" name="ben_rel" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
                             <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Contact Mobile *</label><input type="tel" name="ben_phone" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
                         </div>
@@ -166,8 +211,21 @@
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder Name *</label><input type="text" id="accHolderField" name="account_name" class="p-3 border rounded-xl bg-white outline-none"></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Number *</label><input type="text" id="accNumField" name="account_num" class="p-3 border rounded-xl bg-white outline-none"></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Branch Code *</label><input type="text" id="branchCodeField" name="branch_code" readonly class="p-3 border border-dashed rounded-xl bg-slate-100 font-bold text-slate-500 outline-none"></div>
-                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Type *</label><select name="account_type" class="p-3 border rounded-xl bg-white outline-none"><option value="Current">Current / Cheque Account</option><option value="Savings">Savings Account</option></select></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Type *</label><select name="account_type" class="p-3 border rounded-xl bg-white outline-none"><option value="Current">Current / Cheque Account</option><option value="Savings">Savings Account</option><option value="Transmission">Transmission Account</option></select></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder's Contact Number *</label><input type="tel" name="acc_holder_phone" required class="p-3 border rounded-xl bg-white outline-none"></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Commencement Date *</label><input type="date" name="commencement_date" required class="p-3 border rounded-xl bg-white outline-none"></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Target Deduction Calendar Date *</label><select id="deductionDaySelectorMenu" name="deduction_date" class="p-3 border rounded-xl bg-white outline-none"></select></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 p-5 bg-yellow-50/20 border border-yellow-100 rounded-2xl">
+                        <h3 class="text-xs font-black text-gray-800 uppercase tracking-wide"><i class="fas fa-bullhorn text-yellow-500"></i> Communication Preferences (Opt-in)</h3>
+                        <p class="text-xs text-gray-600">Please select how you would like to receive communications from us:</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="inline-flex items-center text-sm font-medium text-gray-700"><input type="checkbox" name="optin_phone" value="true" class="form-checkbox h-4 w-4 text-emerald-600"> <span class="ml-2">Telephone</span></label>
+                            <label class="inline-flex items-center text-sm font-medium text-gray-700"><input type="checkbox" name="optin_sms" value="true" class="form-checkbox h-4 w-4 text-emerald-600"> <span class="ml-2">SMS</span></label>
+                            <label class="inline-flex items-center text-sm font-medium text-gray-700"><input type="checkbox" name="optin_email" value="true" class="form-checkbox h-4 w-4 text-emerald-600"> <span class="ml-2">Email</span></label>
+                            <label class="inline-flex items-center text-sm font-medium text-gray-700"><input type="checkbox" name="optin_whatsapp" value="true" class="form-checkbox h-4 w-4 text-emerald-600"> <span class="ml-2">WhatsApp</span></label>
                         </div>
                     </div>
 
@@ -178,7 +236,9 @@
                     </div>
 
                     <div class="space-y-3 p-4 bg-slate-50 border rounded-xl">
-                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above.</span></label>
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" name="terms_acceptance" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above.</span></label>
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="needsAnalysisWaiver" name="needs_analysis_waiver" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I acknowledge receipt of the Needs Analysis Waiver and understand my rights.</span></label>
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="intermediaryAppointment" name="intermediary_appointment" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I confirm the appointment of the mandated intermediary for this policy.</span></label>
                     </div>
 
                     <div class="bg-gradient-to-r from-slate-900 to-[#1e3a5f] p-5 rounded-xl text-white flex justify-between items-center font-black"><span class="text-xs text-slate-300">Total Calculated Monthly Premium:</span><span id="premiumPriceDisplayNode" class="text-xl text-teal-400">R 0.00</span><input type="hidden" name="local_total" id="hiddenPremiumInputTracker"></div>
@@ -211,16 +271,46 @@
         const bankUniversalBranchCodes = { "Capitec": "470010", "FNB": "250655", "Standard Bank": "051001", "ABSA": "632005", "Nedbank": "198765" };
         
         const priceMatrixMap = {
-            local: [{v: "LOCAL_F_R10000|169", t: "R10,000 Cover Plan (R169.00)"}, {v: "LOCAL_F_R15000|209", t: "R15,000 Cover Plan (R209.00)"}, {v: "LOCAL_F_R30000|299", t: "R30,000 Cover Plan (R299.00)"}],
-            sadac: [{v: "SADC_F_R30000|299", t: "SADC R30k Family Plan (R299.00)"}],
-            wwfp: [{v: "WWFP_PREMIUM_F|540", t: "Premium R45k Diaspora Plan (R540.00)"}]
+            local: {
+                family: [
+                    {v: "LOCAL_F_R2000|50", t: "R2,000 Family Cover (R50.00)"},
+                    {v: "LOCAL_F_R5000|90", t: "R5,000 Family Cover (R90.00)"},
+                    {v: "LOCAL_F_R10000|169", t: "R10,000 Family Cover (R169.00)"},
+                    {v: "LOCAL_F_R15000|209", t: "R15,000 Family Cover (R209.00)"},
+                    {v: "LOCAL_F_R18000|239", t: "R18,000 Family Cover (R239.00)"},
+                    {v: "LOCAL_F_R25000|279", t: "R25,000 Family Cover (R279.00)"},
+                    {v: "LOCAL_F_R30000|299", t: "R30,000 Family Cover (R299.00)"}
+                ],
+                single: [
+                    {v: "LOCAL_S_R2000|30", t: "R2,000 Single Cover (R30.00)"},
+                    {v: "LOCAL_S_R5000|60", t: "R5,000 Single Cover (R60.00)"},
+                    {v: "LOCAL_S_R10000|110", t: "R10,000 Single Cover (R110.00)"},
+                    {v: "LOCAL_S_R15000|150", t: "R15,000 Single Cover (R150.00)"},
+                    {v: "LOCAL_S_R18000|180", t: "R18,000 Single Cover (R180.00)"},
+                    {v: "LOCAL_S_R25000|220", t: "R25,000 Single Cover (R220.00)"},
+                    {v: "LOCAL_S_R30000|250", t: "R30,000 Single Cover (R250.00)"}
+                ]
+            },
+            sadac: {
+                family: [{v: "SADC_F_R30000|299", t: "SADC R30k Family Plan (R299.00)"}],
+                single: [{v: "SADC_S_R30000|250", t: "SADC R30k Single Plan (R250.00)"}]
+            },
+            wwfp: {
+                family: [
+                    {v: "WWFP_PREMIUM_F|540", t: "Premium R45k Diaspora Family (R540.00)"},
+                    {v: "WWFP_PRESTIGE_F|750", t: "Prestige R75k Diaspora Family (R750.00)"},
+                    {v: "WWFP_EXECUTIVE_F|900", t: "Executive R90k Diaspora Family (R900.00)"}
+                ],
+                single: [
+                    {v: "WWFP_PREMIUM_S|450", t: "Premium R45k Diaspora Single (R450.00)"},
+                    {v: "WWFP_PRESTIGE_S|600", t: "Prestige R75k Diaspora Single (R600.00)"},
+                    {v: "WWFP_EXECUTIVE_S|750", t: "Executive R90k Diaspora Single (R750.00)"}
+                ]
+            }
         };
 
         const currentPathTierMarkerKey = window.location.pathname === "/sadac" ? "sadac" : (window.location.pathname === "/wwfp" ? "wwfp" : "local");
         document.getElementById("contextNavSelector").value = window.location.pathname;
-
-        const dropdownNode = document.getElementById("productPlan");
-        priceMatrixMap[currentPathTierMarkerKey].forEach(opt => { dropdownNode.insertAdjacentHTML('beforeend', `<option value="${opt.v}">${opt.t}</option>`); });
 
         const daysSelectNode = document.getElementById("deductionDaySelectorMenu");
         for (let d = 1; d <= 31; d++) {
@@ -233,20 +323,77 @@
         function toggleDebitFieldsViewBox() { document.getElementById("debitAuthorizationMandateFieldsBox").classList.toggle("hidden", document.getElementById("paymentMethodSelector").value !== "Debit Order"); }
         function runUniversalBranchPopulator() { document.getElementById("branchCodeField").value = bankUniversalBranchCodes[document.getElementById("bankNameNode").value] || ""; }
 
+        function handleProductTypeChange() {
+            const productType = document.querySelector('input[name="product_type"]:checked').value;
+            const countryOfResidenceFieldDiv = document.getElementById("countryOfResidenceField");
+            const countryOfResidenceInput = countryOfResidenceFieldDiv.querySelector('input[name="country_of_residence"]');
+
+            if (productType === "wwfp") {
+                countryOfResidenceFieldDiv.classList.remove("hidden");
+                countryOfResidenceInput.setAttribute("required", "required");
+            } else {
+                countryOfResidenceFieldDiv.classList.add("hidden");
+                countryOfResidenceInput.removeAttribute("required");
+                countryOfResidenceInput.value = ""; // Clear value when hidden
+            }
+
+            populateProductPlans(); // Update cover options based on product type
+        }
+
+        function populateProductPlans() {
+            const dropdownNode = document.getElementById("productPlan");
+            dropdownNode.innerHTML = ""; // Clear existing options
+
+            const productType = document.querySelector('input[name="product_type"]:checked').value;
+            const planType = document.querySelector('input[name="plan_type"]:checked').value;
+            
+            // Map productType to the keys in priceMatrixMap
+            const plansKey = productType === "standard" ? "local" : "wwfp"; // 'standard' maps to 'local', 'wwfp' maps to 'wwfp'
+            const plans = priceMatrixMap[plansKey][planType];
+
+            plans.forEach(opt => {
+                dropdownNode.insertAdjacentHTML('beforeend', `<option value="${opt.v}">${opt.t}</option>`);
+            });
+            runPremiumPriceCalculatorEngine(); // Recalculate premium after populating plans
+        }
+
         function injectDependentRowElement(forcedType) {
             const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
-            if (forcedType === "Spouse" && tbody.querySelectorAll("input[value='Spouse']").length >= 1) { alert("Only 1 Spouse permitted."); return; }
-            if (forcedType === "Child" && tbody.querySelectorAll("input[value='Child']").length >= 6) { alert("Maximum configuration rule: Capped at 6 Children."); return; }
+            if (forcedType === "Spouse" && tbody.querySelectorAll("input[name='fam_relation[]'][value='Spouse']").length >= 1) { alert("Only 1 Spouse permitted."); return; }
+            if (forcedType === "Child" && tbody.querySelectorAll("input[name='fam_relation[]'][value='Child']").length >= 6) { alert("Maximum configuration rule: Capped at 6 Children."); return; }
 
             tbody.insertAdjacentHTML("beforeend", `
                 <tr>
                     <td class="p-2"><input type="text" name="fam_relation[]" value="${forcedType}" readonly class="w-full p-2 border font-bold text-teal-700 bg-slate-50 rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="text" name="fam_name[]" required placeholder="Full Legal Name" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="fam_fname[]" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2"><input type="date" name="fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
                 </tr>
             `);
         }
+
+        function injectExtendedFamilyRowElement() {
+            const tbody = document.querySelector("#extendedFamilyDataGridTable tbody");
+            tbody.insertAdjacentHTML("beforeend", `
+                <tr>
+                    <td class="p-2"><input type="text" name="ext_fam_relation[]" required placeholder="e.g. Mother" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="ext_fam_fname[]" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="ext_fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="date" name="ext_fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2">
+                        <select name="ext_fam_cover[]" required class="w-full p-2 border rounded-lg outline-none">
+                            <option value="2000">R2,000</option>
+                            <option value="3000">R3,000</option>
+                            <option value="4000">R4,000</option>
+                            <option value="5000">R5,000</option>
+                        </select>
+                    </td>
+                    <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
+                </tr>
+            `);
+        }
+
 
         function runPremiumPriceCalculatorEngine() {
             const val = document.getElementById("productPlan").value; if (!val) return;
@@ -325,7 +472,11 @@
             return false;
         }
 
-        document.addEventListener('DOMContentLoaded', () => { changeSlideView(1); injectDependentRowElement('Child'); });
+        document.addEventListener('DOMContentLoaded', () => {
+            handleProductTypeChange(); // Initialize product type and plan options
+            changeSlideView(1);
+            injectDependentRowElement('Child');
+        });
     </script>
 </body>
 </html>
