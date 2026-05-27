@@ -132,8 +132,12 @@
                         <div id="countryOfResidenceField" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Residence *</label>
                             <input type="text" name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" placeholder="e.g. United Kingdom" onkeyup="runPremiumPriceCalculatorEngine()" onchange="runPremiumPriceCalculatorEngine()">
-                        </div>                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country Origin Tier *</label><input type="text" name="residence" value="{{CONTEXT_FLAG}}" readonly class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 font-bold text-gray-500 outline-none"></div>
-                        
+                        </div>                        <div id="localCountryOriginFieldWrapper" class="hidden">
+                            <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Origin *</label>
+                            <select id="localCountryOriginSelect" name="local_country_of_origin" class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none">
+                                <option value="">-- Select Country of Origin --</option>
+                            </select>
+                        </div>                        
                         <div id="sadacCountrySelectionFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">SADC Country Selection *</label>
@@ -440,9 +444,11 @@
         function populateSadcCountryDropdowns() {
             const sadcCountrySelect = document.getElementById("sadcCountrySelect");
             const countryOriginSelect = document.getElementById("countryOriginSelect");
+            const localCountryOriginSelect = document.getElementById("localCountryOriginSelect");
 
             sadcCountrySelect.innerHTML = '<option value="">-- Select SADC Country --</option>';
             countryOriginSelect.innerHTML = '<option value="">-- Select Country of Origin --</option>';
+            localCountryOriginSelect.innerHTML = '<option value="">-- Select Country of Origin --</option>'; // New line
 
             sadcCountries.forEach(country => {
                 const option1 = document.createElement("option");
@@ -454,32 +460,51 @@
                 option2.value = country;
                 option2.textContent = country;
                 countryOriginSelect.appendChild(option2);
+
+                const option3 = document.createElement("option"); // New line
+                option3.value = country;
+                option3.textContent = country;
+                localCountryOriginSelect.appendChild(option3);
             });
         }
 
-        function handleSadacFormUI() {
+        function handleRegionalUI() {
             const sadacCountrySelectionFields = document.getElementById("sadacCountrySelectionFields");
             const sadcCountrySelect = document.getElementById("sadcCountrySelect");
             const countryOriginSelect = document.getElementById("countryOriginSelect");
+            
+            const localCountryOriginFieldWrapper = document.getElementById("localCountryOriginFieldWrapper");
+            const localCountryOriginSelect = document.getElementById("localCountryOriginSelect");
+
             const productTypeToggle = document.querySelector('input[name="product_type"]').closest('.bg-gray-50.border');
+
+            // Reset visibility and required status for all regional country fields
+            sadacCountrySelectionFields.classList.add("hidden");
+            sadcCountrySelect.removeAttribute("required");
+            countryOriginSelect.removeAttribute("required");
+            sadcCountrySelect.value = "";
+            countryOriginSelect.value = "";
+            
+            localCountryOriginFieldWrapper.classList.add("hidden");
+            localCountryOriginSelect.removeAttribute("required");
+            localCountryOriginSelect.value = "";
+
+            if (productTypeToggle) { // Always show for Local and WWFP initially
+                productTypeToggle.classList.remove("hidden");
+            }
 
             if (currentPathTierMarkerKey === 'sadac') {
                 sadacCountrySelectionFields.classList.remove("hidden");
                 sadcCountrySelect.setAttribute("required", "required");
                 countryOriginSelect.setAttribute("required", "required");
-                if (productTypeToggle) {
+                if (productTypeToggle) { // Hide for SADC
                     productTypeToggle.classList.add("hidden");
                 }
-            } else {
-                sadacCountrySelectionFields.classList.add("hidden");
-                sadcCountrySelect.removeAttribute("required");
-                countryOriginSelect.removeAttribute("required");
-                sadcCountrySelect.value = "";
-                countryOriginSelect.value = "";
-                if (productTypeToggle) {
-                    productTypeToggle.classList.remove("hidden");
-                }
+            } else if (currentPathTierMarkerKey === 'local') {
+                localCountryOriginFieldWrapper.classList.remove("hidden");
+                localCountryOriginSelect.setAttribute("required", "required");
             }
+            // WWFP: countryOfResidenceField is handled by handleProductTypeChange
         }
 
         function handleMaritalStatusChange() {
@@ -686,6 +711,7 @@
             try {
                 // Ensure latest data from current slide is saved before final submission
                 saveFormData(); 
+                console.log("Value of legal_name_confirm in formState:", formState['legal_name_confirm']);
 
                 const formData = new FormData();
                 for (const key in formState) {
@@ -707,22 +733,13 @@
                 
                 if (!response.ok) {
                     const err = await response.json();
-                    console.error("Submission failed on backend validation. Details:", err.detail || err); // Log the error
-                    
-                    // Force success view for debug as requested, but indicate failure
-                    document.getElementById("submissionWizardForm").classList.add("hidden");
-                    document.getElementById("livePlatformSuccessView").classList.remove("hidden");
-                    document.getElementById("outboundPolicyIdDisplayNode").innerText = "FAILURE-DEBUG";
-                    document.getElementById("outboundBillingRefDisplayNode").innerText = err.detail || "Backend Validation Error";
-                    alert(`🚨 Submission failed due to backend validation: ${err.detail || 'Unknown error'}. Forcing success view for debug.`);
+                    console.error("Submission failed on backend validation. Details:", err.detail || err);
+                    triggerValidationCountdownOverlay(err.detail || "Validation Error Caught", currentActiveSlideIdx);
                     return false;
                 }
-
-                // Successful submission flow
                 const livePolicyId = response.headers.get("X-Easipol-Policy-Number");
                 const liveBillingId = response.headers.get("X-Easipol-Billing-Reference");
                 const pdfBlob = await response.blob();
-
                 document.getElementById("submissionWizardForm").classList.add("hidden");
                 document.getElementById("outboundPolicyIdDisplayNode").innerText = livePolicyId;
                 document.getElementById("outboundBillingRefDisplayNode").innerText = liveBillingId;
@@ -734,22 +751,14 @@
                 document.getElementById("livePlatformSuccessView").classList.remove("hidden");
                 
             } catch (err) {
-                // Client-side JS error or network error before/during fetch
-                console.error("Submission bypassed block due to client-side or network error:", err); // Log the error
-                alert("🚨 An unexpected client-side or network error occurred. Check console for details. Forcing success view for debug.");
-
-                // Force success view for debug
-                document.getElementById("submissionWizardForm").classList.add("hidden");
-                document.getElementById("livePlatformSuccessView").classList.remove("hidden");
-                document.getElementById("outboundPolicyIdDisplayNode").innerText = "CLIENT-ERROR";
-                document.getElementById("outboundBillingRefDisplayNode").innerText = err.message || "Network/Client Error";
+                console.error("Submission failed due to client-side or network error:", err);
+                alert("🚨 Outbound network transport gateway connection timeout.");
             }
-            return false; // Prevent any further default submission behavior
-        }
+            return false;        }
 
         document.addEventListener('DOMContentLoaded', () => {
-            populateSadcCountryDropdowns(); // Populate SADC country dropdowns
-            handleSadacFormUI(); // Handle SADAC specific UI (hides product type toggle for SADAC, shows/hides SADC country fields)
+            populateSadcCountryDropdowns(); // Populate SADC country dropdowns (also useful for local country origin)
+            handleRegionalUI(); // Handle regional specific UI (Local, SADC, WWFP)
             handleMaritalStatusChange(); // Initialize marital status based on default selection
             handleProductTypeChange(); // Initialize product type and plan options (will also call populateProductPlans)
             changeSlideView(1);
