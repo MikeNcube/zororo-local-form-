@@ -2,11 +2,19 @@
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
+from typing import List, Optional
 import os
 import io
 import json
 import uvicorn
+import smtplib
+import ssl
+import uuid
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+from datetime import datetime
 
 app = FastAPI(
     title="Zororo Phumulani v4.1 - Railway Presentation Mode", version="4.1.0"
@@ -47,6 +55,73 @@ def append_registered_phone_number(phone_num: str):
     numbers.append(phone_num)
     with open(REGISTRY_FILE, "w") as f:
         json.dump(numbers, f)
+
+
+# ─── EMAIL LOGIC ────────────────────────────────────────────────────────
+def send_email_ssl(to_addr: str, subject: str, html_body: str,
+                   pdf_bytes: Optional[bytes], pdf_filename: str) -> bool:
+    smtp_host = os.environ.get("SMTP_HOST", "mail.zororo-phumulani.co.za")
+    smtp_port = int(os.environ.get("SMTP_PORT", "465"))
+    smtp_user = os.environ.get("SMTP_USER", "nomthandazo.wwfp@zororo-phumulani.co.za")
+    smtp_pass = os.environ.get("SMTP_PASS", "SPA7MW6AOYG4AVLQ")
+
+    if not smtp_user or not smtp_pass:
+        return False
+
+    msg = MIMEMultipart("mixed")
+    msg["From"] = smtp_user
+    msg["To"] = to_addr
+    msg["Subject"] = subject
+    msg["Message-ID"] = f"<{uuid.uuid4()}@zororo-phumulani.co.za>"
+
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText(html_body, "html", "utf-8"))
+    msg.attach(alt)
+
+    if pdf_bytes:
+        part = MIMEBase("application", "pdf")
+        part.set_payload(pdf_bytes)
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{pdf_filename}"')
+        msg.attach(part)
+
+    try:
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx) as s:
+            s.login(smtp_user, smtp_pass)
+            s.sendmail(smtp_user, [to_addr], msg.as_string())
+        return True
+    except Exception:
+        return False
+
+
+def get_client_email_template(name, policy_number, plan, premium):
+    today = datetime.now().strftime("%d %B %Y")
+    return f"""<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f5f7fb;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:32px auto;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+  <div style="background:linear-gradient(135deg,#1e3a5f,#0d2137);padding:28px 32px;">
+    <h1 style="color:#fff;font-size:22px;margin:0 0 6px;">Zororo Phumulani</h1>
+    <p style="color:rgba(255,255,255,0.65);margin:0;font-size:13px;">Application Received — Digital Gateway</p>
+  </div>
+  <div style="background:#fff;padding:28px 32px;">
+    <p style="font-size:15px;color:#1a1a2e;">Dear <b>{name}</b>,</p>
+    <p style="color:#4a5568;font-size:14px;line-height:1.7;">
+      Your policy application has been successfully received. 
+      Attached is your completed application form for your records.</p>
+    <div style="background:#f5f7fb;border-left:4px solid #0d9488;border-radius:6px;padding:18px 20px;margin:20px 0;">
+      <p style="margin:0 0 4px;font-size:11px;color:#6b7a99;font-weight:bold;text-transform:uppercase;">Policy Tracker Reference</p>
+      <p style="margin:0;font-size:24px;font-weight:bold;color:#1e3a5f;">{policy_number}</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#6b7a99;">{plan} &nbsp;·&nbsp; {premium} &nbsp;·&nbsp; {today}</p>
+    </div>
+    <p style="font-size:13px;color:#4a5568;">For immediate assistance call <b>+27 81 419 4980</b></p>
+  </div>
+  <div style="background:#0d2137;padding:14px 32px;text-align:center;">
+    <p style="color:rgba(255,255,255,0.4);font-size:10px;margin:0;">
+      Zororo Phumulani Investments (Pty) Ltd · FSP48558 · Underwritten by KGA Life FSP15980</p>
+  </div>
+</div>
+</body></html>"""
 
 
 def read_and_render_template(title_label, context_flag):
@@ -148,6 +223,9 @@ async def submit_policy(
     email: str = Form(...),
     dob: str = Form(...),
     address: str = Form(...),
+    marital_status: str = Form(...),
+    sadac_country_selection: str = Form(default=""),
+    country_of_origin: str = Form(default=""),
     ben_fname: str = Form(...),
     ben_lname: str = Form(...),
     ben_rel: str = Form(...),
@@ -375,6 +453,13 @@ async def submit_policy(
     )
 
     c.save()
+
+    # Trigger Phase 2 Email Flow
+    with open(pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+
+    client_body = get_client_email_template(f"{fname} {lname}", policy_number, plan_name, local_total)
+    send_email_ssl(email, "Your Zororo Phumulani Policy Application", client_body, pdf_bytes, pdf_filename)
 
     exposed_headers = {
         "X-Easipol-Policy-Number": str(policy_number),

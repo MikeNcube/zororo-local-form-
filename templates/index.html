@@ -50,6 +50,7 @@
                 <div>
                     <h1 class="text-xl font-extrabold tracking-tight">Zororo Phumulani</h1>
                     <p class="text-xs text-emerald-400 font-black tracking-wide uppercase mt-0.5">{{FORM_CONTEXT_TITLE}}</p>
+                    <p class="text-[10px] text-white/60 font-bold uppercase tracking-widest">{{CONTEXT_FLAG}}</p>
                 </div>
             </div>
             <select id="contextNavSelector" onchange="location.href=this.value" class="p-2 text-xs font-black bg-white/10 text-white rounded-lg cursor-pointer outline-none border border-white/20">
@@ -131,7 +132,44 @@
                         </select></div>
                         <div id="countryOfResidenceField" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Residence *</label>
-                            <input type="text" name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" placeholder="e.g. United Kingdom" onkeyup="runPremiumPriceCalculatorEngine()" onchange="runPremiumPriceCalculatorEngine()">
+                            <select name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" onchange="runPremiumPriceCalculatorEngine()">
+                                <option value="">-- Select Country --</option>
+                                <optgroup label="Southern Africa (SADC)">
+                                    <option value="South Africa">South Africa</option>
+                                    <option value="Zimbabwe">Zimbabwe</option>
+                                    <option value="Zambia">Zambia</option>
+                                    <option value="Botswana">Botswana</option>
+                                    <option value="Mozambique">Mozambique</option>
+                                    <option value="Malawi">Malawi</option>
+                                    <option value="Namibia">Namibia</option>
+                                    <option value="Lesotho">Lesotho</option>
+                                    <option value="Eswatini">Eswatini</option>
+                                    <option value="Tanzania">Tanzania</option>
+                                    <option value="Mauritius">Mauritius</option>
+                                    <option value="Madagascar">Madagascar</option>
+                                    <option value="DR Congo">DR Congo</option>
+                                    <option value="Angola">Angola</option>
+                                    <option value="Seychelles">Seychelles</option>
+                                </optgroup>
+                                <optgroup label="Europe">
+                                    <option value="United Kingdom">United Kingdom</option>
+                                    <option value="Ireland">Ireland</option>
+                                    <option value="Germany">Germany</option>
+                                    <option value="France">France</option>
+                                    <option value="Netherlands">Netherlands</option>
+                                    <option value="Belgium">Belgium</option>
+                                    <option value="Sweden">Sweden</option>
+                                    <option value="Norway">Norway</option>
+                                </optgroup>
+                                <optgroup label="Oceania">
+                                    <option value="Australia">Australia</option>
+                                    <option value="New Zealand">New Zealand</option>
+                                </optgroup>
+                                <optgroup label="Americas">
+                                    <option value="United States">United States</option>
+                                    <option value="Canada">Canada</option>
+                                </optgroup>
+                            </select>
                         </div>                        <div id="localCountryOriginFieldWrapper" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Origin *</label>
                             <select id="localCountryOriginSelect" name="local_country_of_origin" class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none">
@@ -284,6 +322,7 @@
                         <h4 class="font-bold text-gray-900 mb-1 uppercase">Definitions & Statutory Terms</h4>
                         <p>• <strong>Cash in lieu:</strong> Policyholders preserve legal choices to request monetary value settlements instead of executing physical repatriation logistics to Zimbabwe.</p>
                         <p>• <strong>Underwriting Waiting Periods:</strong> Standard three (3) calendar months restrictions match immediate family lines, and six (6) months match extended relations for natural causes.</p>
+                        <p>• <strong>Stillborn Definition:</strong> Stillborn defined as death after 25 weeks of pregnancy.  (T&C Notes)</p>
                     </div>
 
                     <div class="space-y-3 p-4 bg-slate-50 border rounded-xl">
