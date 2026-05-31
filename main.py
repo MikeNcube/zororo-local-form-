@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Form, UploadFile, File, Request, HTTPException
+﻿from fastapi import FastAPI, Form, UploadFile, File, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -207,6 +207,7 @@ async def serve_terms_and_conditions():
 @app.post("/submit-global-policy")
 async def submit_policy(
     request: Request,
+    background_tasks: BackgroundTasks,
     product_type: str = Form(...),
     title: str = Form(...),
     fname: str = Form(...),
@@ -454,12 +455,12 @@ async def submit_policy(
 
     c.save()
 
-    # Trigger Phase 2 Email Flow
+    # Trigger Phase 2 Email Flow (Non-blocking background task)
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
 
     client_body = get_client_email_template(f"{fname} {lname}", policy_number, plan_name, local_total)
-    send_email_ssl(email, "Your Zororo Phumulani Policy Application", client_body, pdf_bytes, pdf_filename)
+    background_tasks.add_task(send_email_ssl, email, "Your Zororo Phumulani Policy Application", client_body, pdf_bytes, pdf_filename)
 
     exposed_headers = {
         "X-Easipol-Policy-Number": str(policy_number),
