@@ -6,14 +6,10 @@ from typing import List, Optional
 import os
 import io
 import json
+import base64
 import uvicorn
-import smtplib
-import ssl
-import uuid
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
+import urllib.request
+import urllib.error
 from datetime import datetime
 
 app = FastAPI(
@@ -57,62 +53,119 @@ def append_registered_phone_number(phone_num: str):
         json.dump(numbers, f)
 
 
-# ─── EMAIL LOGIC ────────────────────────────────────────────────────────
+# ─── EMAIL LOGIC (HTTP API — SendGrid / Resend) ─────────────────────────
+def _pdf_attachment_payload(pdf_bytes: Optional[bytes], pdf_filename: str):
+    """Build provider-neutral base64 PDF attachment dict, or None if no PDF."""
+    if not pdf_bytes:
+        return None
+    encoded = base64.b64encode(pdf_bytes).decode("ascii")
+    return {"filename": pdf_filename, "content": encoded}
+
+
+def _build_sendgrid_payload(from_email, to_addr, subject, html_body, attachment):
+    """Assemble SendGrid v3 mail/send JSON body."""
+    payload = {
+        "personalizations": [{"to": [{"email": to_addr}]}],
+        "from": {"email": from_email},
+        "subject": subject,
+        "content": [{"type": "text/html", "value": html_body}],
+    }
+    if attachment:
+        payload["attachments"] = [{
+            "content": attachment["content"],
+            "filename": attachment["filename"],
+            "type": "application/pdf",
+            "disposition": "attachment",
+        }]
+    return payload
+
+
+def _build_resend_payload(from_email, to_addr, subject, html_body, attachment):
+    """Assemble Resend emails API JSON body."""
+    payload = {
+        "from": from_email,
+        "to": [to_addr],
+        "subject": subject,
+        "html": html_body,
+    }
+    if attachment:
+        payload["attachments"] = [attachment]
+    return payload
+
+
+def _post_email_json(url: str, api_key: str, payload: dict, timeout: int = 15) -> bool:
+    """POST JSON to a transactional email provider; return True on 2xx."""
+    body = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return 200 <= response.status < 300
+
+
+def _dispatch_via_provider(provider, api_key, from_email, to_addr,
+                           subject, html_body, attachment) -> bool:
+    """Route outbound mail to SendGrid or Resend based on EMAIL_PROVIDER."""
+    if provider == "sendgrid":
+        url = "https://api.sendgrid.com/v3/mail/send"
+        payload = _build_sendgrid_payload(
+            from_email, to_addr, subject, html_body, attachment
+        )
+    else:
+        url = "https://api.resend.com/emails"
+        payload = _build_resend_payload(
+            from_email, to_addr, subject, html_body, attachment
+        )
+    return _post_email_json(url, api_key, payload)
+
+
 def send_email_worker(to_addr: str, subject: str, html_body: str,
                       pdf_bytes: Optional[bytes], pdf_filename: str) -> bool:
-    smtp_host = os.environ.get("SMTP_HOST", "mail.zororo-phumulani.co.za")
-    smtp_port = int(os.environ.get("SMTP_PORT", "465"))
-    smtp_user = os.environ.get("SMTP_USER", "nomthandazo.wwfp@zororo-phumulani.co.za")
-    smtp_pass = os.environ.get("SMTP_PASS", "SPA7MW6AOYG4AVLQ")
-    smtp_timeout = 10
+    """
+    Send one transactional email via HTTPS API (SendGrid or Resend).
+    Runs under FastAPI BackgroundTasks — failures never block the HTTP response.
+    """
+    api_key = os.environ.get("EMAIL_API_KEY", "")
+    from_email = os.environ.get(
+        "DEFAULT_FROM_EMAIL", "applications@zororo-phumulani.co.za"
+    )
+    provider = os.environ.get("EMAIL_PROVIDER", "resend").strip().lower()
 
-    if not smtp_user or not smtp_pass:
-        print("SMTP Pipeline Error: SMTP_USER or SMTP_PASS is not configured")
+    if not api_key:
+        print("[ERROR] PROVIDER DISPATCH ERROR: EMAIL_API_KEY is not configured")
         return False
 
-    msg = MIMEMultipart("mixed")
-    msg["From"] = smtp_user
-    msg["To"] = to_addr
-    msg["Subject"] = subject
-    msg["Message-ID"] = f"<{uuid.uuid4()}@zororo-phumulani.co.za>"
+    if provider not in ("sendgrid", "resend"):
+        print(
+            f"[ERROR] PROVIDER DISPATCH ERROR: "
+            f"unsupported EMAIL_PROVIDER '{provider}' (use sendgrid or resend)"
+        )
+        return False
 
-    alt = MIMEMultipart("alternative")
-    alt.attach(MIMEText(html_body, "html", "utf-8"))
-    msg.attach(alt)
-
-    if pdf_bytes:
-        part = MIMEBase("application", "pdf")
-        part.set_payload(pdf_bytes)
-        encoders.encode_base64(part)
-        part.add_header("Content-Disposition", f'attachment; filename="{pdf_filename}"')
-        msg.attach(part)
+    attachment = _pdf_attachment_payload(pdf_bytes, pdf_filename)
 
     try:
-        ctx = ssl.create_default_context()
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(
-                smtp_host, smtp_port, timeout=smtp_timeout, context=ctx
-            ) as server:
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_user, [to_addr], msg.as_string())
-        elif smtp_port == 587:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout) as server:
-                server.ehlo()
-                server.starttls(context=ctx)
-                server.ehlo()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_user, [to_addr], msg.as_string())
-        else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout) as server:
-                server.ehlo()
-                if server.has_extn("starttls"):
-                    server.starttls(context=ctx)
-                    server.ehlo()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(smtp_user, [to_addr], msg.as_string())
-        return True
-    except Exception as e:
-        print(f"SMTP Pipeline Error: {e}")
+        ok = _dispatch_via_provider(
+            provider, api_key, from_email, to_addr, subject, html_body, attachment
+        )
+        if ok:
+            print(f"Email dispatched via {provider} -> {to_addr}")
+        return ok
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        print(
+            f"[ERROR] PROVIDER DISPATCH ERROR: HTTP {exc.code} from {provider}: "
+            f"{detail}"
+        )
+        return False
+    except Exception as exc:
+        print(f"[ERROR] PROVIDER DISPATCH ERROR: {exc}")
         return False
 
 
