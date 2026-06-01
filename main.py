@@ -58,14 +58,16 @@ def append_registered_phone_number(phone_num: str):
 
 
 # ─── EMAIL LOGIC ────────────────────────────────────────────────────────
-def send_email_ssl(to_addr: str, subject: str, html_body: str,
-                   pdf_bytes: Optional[bytes], pdf_filename: str) -> bool:
+def send_email_worker(to_addr: str, subject: str, html_body: str,
+                      pdf_bytes: Optional[bytes], pdf_filename: str) -> bool:
     smtp_host = os.environ.get("SMTP_HOST", "mail.zororo-phumulani.co.za")
     smtp_port = int(os.environ.get("SMTP_PORT", "465"))
     smtp_user = os.environ.get("SMTP_USER", "nomthandazo.wwfp@zororo-phumulani.co.za")
     smtp_pass = os.environ.get("SMTP_PASS", "SPA7MW6AOYG4AVLQ")
+    smtp_timeout = 10
 
     if not smtp_user or not smtp_pass:
+        print("SMTP Pipeline Error: SMTP_USER or SMTP_PASS is not configured")
         return False
 
     msg = MIMEMultipart("mixed")
@@ -87,11 +89,30 @@ def send_email_ssl(to_addr: str, subject: str, html_body: str,
 
     try:
         ctx = ssl.create_default_context()
-        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx) as s:
-            s.login(smtp_user, smtp_pass)
-            s.sendmail(smtp_user, [to_addr], msg.as_string())
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(
+                smtp_host, smtp_port, timeout=smtp_timeout, context=ctx
+            ) as server:
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, [to_addr], msg.as_string())
+        elif smtp_port == 587:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout) as server:
+                server.ehlo()
+                server.starttls(context=ctx)
+                server.ehlo()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, [to_addr], msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout) as server:
+                server.ehlo()
+                if server.has_extn("starttls"):
+                    server.starttls(context=ctx)
+                    server.ehlo()
+                server.login(smtp_user, smtp_pass)
+                server.sendmail(smtp_user, [to_addr], msg.as_string())
         return True
-    except Exception:
+    except Exception as e:
+        print(f"SMTP Pipeline Error: {e}")
         return False
 
 
@@ -460,7 +481,14 @@ async def submit_policy(
         pdf_bytes = f.read()
 
     client_body = get_client_email_template(f"{fname} {lname}", policy_number, plan_name, local_total)
-    background_tasks.add_task(send_email_ssl, email, "Your Zororo Phumulani Policy Application", client_body, pdf_bytes, pdf_filename)
+    background_tasks.add_task(
+        send_email_worker,
+        email,
+        "Your Zororo Phumulani Policy Application",
+        client_body,
+        pdf_bytes,
+        pdf_filename,
+    )
 
     exposed_headers = {
         "X-Easipol-Policy-Number": str(policy_number),
