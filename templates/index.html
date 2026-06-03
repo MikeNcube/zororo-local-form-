@@ -104,6 +104,11 @@
                     BILLING LINK REFERENCE:<br><span id="outboundBillingRefDisplayNode" class="text-slate-700 text-base tracking-wider font-mono font-black block mt-1"></span>
                 </div>
             </div>
+            <div class="max-w-lg mx-auto w-full pt-2">
+                <div class="p-4 bg-slate-50 border rounded-xl font-bold text-xs text-slate-400 uppercase">
+                    FORM CONTEXT:<br><span id="outboundFormContextDisplayNode" class="text-slate-700 text-base tracking-wider font-mono font-black block mt-1"></span>
+                </div>
+            </div>
             <div class="pt-6">
                 <a id="fileBlobDownloadAnchorLinkNode" href="#" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-black px-8 py-4 rounded-xl shadow-lg inline-block transition-transform hover:scale-[1.01]">Download Preview booklet layout Packet</a>
             </div>
@@ -111,6 +116,7 @@
 
         <form id="submissionWizardForm" onsubmit="executeGlobalSubmissionWirePipeline(event)" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="form_context_origin_marker" id="hiddenFormContextField">
+            {{FORM_CONTEXT}}
 
             <div class="slide active" data-slide="1">
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
@@ -332,6 +338,7 @@
                     </div>
 
                     <div class="bg-gradient-to-r from-slate-900 to-[#1e3a5f] p-5 rounded-xl text-white flex justify-between items-center font-black"><span class="text-xs text-slate-300">Total Calculated Monthly Premium:</span><span id="premiumPriceDisplayNode" class="text-xl text-teal-400">R 0.00</span><input type="hidden" name="local_total" id="hiddenPremiumInputTracker"></div>
+                    <p id="wwfpExchangeRateInfoLine" class="hidden text-xs text-slate-400 italic text-right mt-1"></p>
                     <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(2)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="button" onclick="changeSlideView(4)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
                 </div>
             </div>
@@ -342,6 +349,7 @@
                         <div class="p-4 bg-slate-50 border rounded-xl flex flex-col"><label class="text-xs font-bold mb-1.5 uppercase">Identity Document Scan *</label><input type="file" name="passport_doc" required class="bg-white p-1.5 rounded border text-xs"></div>
                         <div class="p-4 bg-amber-50/40 border border-amber-100 rounded-xl flex flex-col"><label class="text-xs font-bold mb-1.5 uppercase">TFS Scan Booklet *</label><input type="file" name="tsf_doc" required class="bg-white p-1.5 rounded border text-xs"></div>
                     </div>
+                    <p class="text-xs text-slate-500 italic border border-slate-200 rounded-lg px-4 py-2 bg-slate-50">Documents required for main member only. Dependents are covered under the main member's policy.</p>
 
                     <div class="flex flex-col p-4 bg-slate-50 border rounded-xl"><label class="text-xs font-black text-gray-800 mb-1 uppercase">Digital Signature Full Legal Name Authorization *</label><p class="text-xs text-gray-400 font-medium mb-2">Type your full legal name precisely to serve as your authenticated electronic digital binding signature authorization.</p><input type="text" name="legal_name_confirm" id="signatureDeclarationFieldInput" placeholder="Type legal name to validate contract execution" required class="w-full p-3 font-serif italic text-lg border rounded-xl bg-white outline-none"></div>
 
@@ -353,7 +361,7 @@
 
     <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs border-t border-slate-800 font-medium w-full">
         <p>Zororo Phumulani Investments (Pty) Ltd · Authorized Financial Services Provider FSP48558</p>
-        <p class="text-slate-600 mt-1">POPIA Infrastructure Compliant · Standalone Protection Matrix · Version 4.1.0</p>
+        <p class="text-slate-600 mt-1">POPIA Infrastructure Compliant · Standalone Protection Matrix · Version 4.2.0</p>
     </footer>
 
     <script>
@@ -544,6 +552,20 @@
                 localCountryOriginSelect.setAttribute("required", "required");
             }
             // WWFP: countryOfResidenceField is handled by handleProductTypeChange
+
+            // Lock ID type to Passport for SADC and WWFP (no SA ID Number allowed)
+            const idDocTypeSelect = document.getElementById("idDocType");
+            if (currentPathTierMarkerKey === 'sadac' || currentPathTierMarkerKey === 'wwfp') {
+                idDocTypeSelect.value = "Passport";
+                Array.from(idDocTypeSelect.options).forEach(function(opt) {
+                    if (opt.value === "ID Number") opt.disabled = true;
+                });
+                toggleIdInputLabels();
+            } else {
+                Array.from(idDocTypeSelect.options).forEach(function(opt) {
+                    opt.disabled = false;
+                });
+            }
         }
 
         function handleMaritalStatusChange() {
@@ -575,7 +597,7 @@
         function handleProductTypeChange() {
             const productType = document.querySelector('input[name="product_type"]:checked'); // Get the checked radio button
             const countryOfResidenceFieldDiv = document.getElementById("countryOfResidenceField");
-            const countryOfResidenceInput = countryOfResidenceFieldDiv.querySelector('input[name="country_of_residence"]');
+            const countryOfResidenceInput = countryOfResidenceFieldDiv.querySelector('[name="country_of_residence"]');
 
             if (productType && productType.value === "wwfp") { // Check if productType is not null and its value is "wwfp"
                 countryOfResidenceFieldDiv.classList.remove("hidden");
@@ -670,9 +692,9 @@
             let displayText = `R ${totalPremiumZAR.toFixed(2)}`;
 
             if (currentPathTierMarkerKey === 'wwfp') {
-                const countryOfResidenceInput = document.querySelector('input[name="country_of_residence"]');
+                const countryOfResidenceInput = document.querySelector('[name="country_of_residence"]');
                 const country = countryOfResidenceInput ? countryOfResidenceInput.value.trim() : '';
-                
+
                 let convertedAmount = 0;
                 let currencySymbol = '';
                 const rateInfo = exchangeRates[country];
@@ -681,11 +703,25 @@
                     convertedAmount = totalPremiumZAR / rateInfo.rate;
                     currencySymbol = rateInfo.symbol;
                     displayText += ` (Approx. ${currencySymbol}${convertedAmount.toFixed(2)} local currency)`;
-                } else if (country !== '') { // If country is entered but not found in rates
+                } else if (country !== '') {
                      displayText += ` (No exchange rate for ${country})`;
                 }
+
+                // Exchange rate info line below premium bar
+                const exchangeInfoEl = document.getElementById("wwfpExchangeRateInfoLine");
+                if (exchangeInfoEl) {
+                    if (rateInfo && country !== '') {
+                        exchangeInfoEl.classList.remove("hidden");
+                        exchangeInfoEl.textContent = `Exchange rate used: 1 ZAR = ${rateInfo.symbol}${(1 / rateInfo.rate).toFixed(4)} (indicative only)`;
+                    } else {
+                        exchangeInfoEl.classList.add("hidden");
+                    }
+                }
+            } else {
+                const exchangeInfoEl = document.getElementById("wwfpExchangeRateInfoLine");
+                if (exchangeInfoEl) exchangeInfoEl.classList.add("hidden");
             }
-            
+
             document.getElementById("premiumPriceDisplayNode").innerText = displayText;
             document.getElementById("hiddenPremiumInputTracker").value = `R ${totalPremiumZAR.toFixed(2)}`; // Always submit ZAR to backend
         }
@@ -782,6 +818,8 @@
                 document.getElementById("submissionWizardForm").classList.add("hidden");
                 document.getElementById("outboundPolicyIdDisplayNode").innerText = livePolicyId;
                 document.getElementById("outboundBillingRefDisplayNode").innerText = liveBillingId;
+                const ctxLabels = {'local': 'Local South Africa', 'sadc': 'SADC Regional', 'wwfp': 'Worldwide Diaspora'};
+                document.getElementById("outboundFormContextDisplayNode").innerText = ctxLabels[currentPathTierMarkerKey] || 'Local South Africa';
                 
                 const link = document.getElementById("fileBlobDownloadAnchorLinkNode");
                 link.href = window.URL.createObjectURL(pdfBlob);

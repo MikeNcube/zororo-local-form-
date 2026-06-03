@@ -1,16 +1,17 @@
 ﻿from fastapi import FastAPI, Form, UploadFile, File, Request, HTTPException, BackgroundTasks
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 import os
-import io
 import json
 import base64
 import uvicorn
 import urllib.request
 import urllib.error
 from datetime import datetime
+import validators
+import pdf_builder
 
 app = FastAPI(
     title="Zororo Phumulani v4.1 - Railway Presentation Mode", version="4.1.0"
@@ -181,7 +182,7 @@ def get_client_email_template(name, policy_number, plan, premium):
   <div style="background:#fff;padding:28px 32px;">
     <p style="font-size:15px;color:#1a1a2e;">Dear <b>{name}</b>,</p>
     <p style="color:#4a5568;font-size:14px;line-height:1.7;">
-      Your policy application has been successfully received. 
+      Your policy application has been successfully received.
       Attached is your completed application form for your records.</p>
     <div style="background:#f5f7fb;border-left:4px solid #0d9488;border-radius:6px;padding:18px 20px;margin:20px 0;">
       <p style="margin:0 0 4px;font-size:11px;color:#6b7a99;font-weight:bold;text-transform:uppercase;">Policy Tracker Reference</p>
@@ -198,13 +199,17 @@ def get_client_email_template(name, policy_number, plan, premium):
 </body></html>"""
 
 
-def read_and_render_template(title_label, context_flag):
+def read_and_render_template(title_label, context_flag, form_context="local"):
     file_path = "templates/index.html"
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             html_content = f.read()
             html_content = html_content.replace("{{FORM_CONTEXT_TITLE}}", title_label)
             html_content = html_content.replace("{{CONTEXT_FLAG}}", context_flag)
+            hidden = (
+                f'<input type="hidden" name="form_context" value="{form_context}">'
+            )
+            html_content = html_content.replace("{{FORM_CONTEXT}}", hidden)
             return html_content
     return "<h1>System Error: templates/index.html missing!</h1>"
 
@@ -212,21 +217,21 @@ def read_and_render_template(title_label, context_flag):
 @app.get("/", response_class=HTMLResponse)
 async def serve_local_form():
     return read_and_render_template(
-        "LOCAL REGIONAL FORM SECTION (FSP48558)", "South Africa"
+        "LOCAL REGIONAL FORM SECTION (FSP48558)", "South Africa", "local"
     )
 
 
 @app.get("/sadac", response_class=HTMLResponse)
 async def serve_sadac_form():
     return read_and_render_template(
-        "SADC REGIONAL FORM SECTION (FSP48558)", "SADC Region"
+        "SADC REGIONAL FORM SECTION (FSP48558)", "SADC Region", "sadc"
     )
 
 
 @app.get("/wwfp", response_class=HTMLResponse)
 async def serve_wwfp_form():
     return read_and_render_template(
-        "WWFP DIASPORA FORM SECTION (FSP48558)", "International"
+        "WWFP DIASPORA FORM SECTION (FSP48558)", "International", "wwfp"
     )
 
 
@@ -247,13 +252,13 @@ async def serve_terms_and_conditions():
             <h1 class="text-3xl font-bold text-gray-900 mb-6">Zororo Phumulani Terms & Conditions</h1>
             <h2 class="text-xl font-semibold text-gray-800 mb-4">1. Introduction</h2>
             <p class="mb-4 text-gray-700">Welcome to Zororo Phumulani. These Terms and Conditions govern your use of our digital application form and the services provided through it. By accessing or using our services, you agree to be bound by these Terms.</p>
-            
+
             <h2 class="text-xl font-semibold text-gray-800 mb-4">2. Eligibility</h2>
             <p class="mb-4 text-gray-700">You must be at least 18 years old and a legal resident of the country where the policy is issued to use our services. By proceeding, you confirm that you meet these eligibility requirements.</p>
 
             <h2 class="text-xl font-semibold text-gray-800 mb-4">3. Application Process</h2>
             <p class="mb-4 text-gray-700">The digital application form requires accurate and complete information. Any false or misleading information may result in the denial or termination of your policy. All data submitted is subject to our Privacy Policy.</p>
-            
+
             <h2 class="text-xl font-semibold text-gray-800 mb-4">4. Policy Acceptance</h2>
             <p class="mb-4 text-gray-700">Submission of this form does not guarantee policy acceptance. All applications are subject to underwriting approval by Zororo Phumulani, which may include a waiting period. You will be notified of your application status via your provided contact details.</p>
 
@@ -265,7 +270,7 @@ async def serve_terms_and_conditions():
 
             <h2 class="text-xl font-semibold text-gray-800 mb-4">7. Legal Declarations</h2>
             <p class="mb-4 text-gray-700">You acknowledge and agree to all legal declarations made during the application process, including the Terms & Conditions Acceptance, Needs Analysis Waiver, and Mandated Intermediary Appointment.</p>
-            
+
             <h2 class="text-xl font-semibold text-gray-800 mb-4">8. Privacy Policy</h2>
             <p class="mb-4 text-gray-700">Your privacy is important to us. Our Privacy Policy details how we collect, use, and protect your personal information. By using our services, you agree to our <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a>.</p>
 
@@ -277,6 +282,7 @@ async def serve_terms_and_conditions():
     </body>
     </html>
     """
+
 
 @app.post("/submit-global-policy")
 async def submit_policy(
@@ -331,6 +337,7 @@ async def submit_policy(
     intermediary_appointment: bool = Form(...),
     passport_doc: UploadFile = File(default=None),
     tsf_doc: UploadFile = File(default=None),
+    form_context: str = Form(default="local"),
 ):
     clean_phone = phone.strip().replace(" ", "")
     if clean_phone in load_registered_phone_numbers():
@@ -338,6 +345,31 @@ async def submit_policy(
             status_code=400,
             detail="Guardrail Failure: A policy has already been registered with this mobile phone number.",
         )
+
+    # ── VALIDATION LAYER — runs before any writes or PDF generation ─────────
+    field_kwargs = dict(
+        fname=fname, lname=lname, phone=phone, email=email,
+        address=address, dob=dob, gender=gender,
+        marital_status=marital_status, ben_fname=ben_fname,
+        ben_lname=ben_lname, ben_rel=ben_rel, ben_phone=ben_phone,
+    )
+    errors = validators.collect_validation_errors(
+        form_context=form_context,
+        id_doc_type=id_doc_type,
+        identity_value=identity_value,
+        dob=dob,
+        gender=gender,
+        phone=phone,
+        sadac_country_selection=sadac_country_selection,
+        country_of_origin=country_of_origin,
+        country_of_residence=country_of_residence,
+        field_kwargs=field_kwargs,
+    )
+    if errors:
+        raise HTTPException(status_code=400, detail=" | ".join(errors))
+
+    stillborn_review = validators.check_stillborn_flag(fam_relation, fam_dob)
+    # ── END VALIDATION ────────────────────────────────────────────────────────
 
     append_registered_phone_number(clean_phone)
 
@@ -348,186 +380,38 @@ async def submit_policy(
     pdf_filename = "Zororo_Presentation_Preview_Booklet.pdf"
     pdf_path = os.path.join(PDF_DIR, pdf_filename)
 
-    # PARTITION STEP: STRICT 3-PAGE REPORTLAB PDF DRAWING BLOCK
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.colors import HexColor
-
-    c = canvas.Canvas(pdf_path, pagesize=A4)
-
-    # PAGE 1: CORE METRICS WITH NOTICEABLE WATERMARKS
-    c.setFillColor(HexColor("#1e3a5f"))
-    c.rect(0, 815, 595, 30, fill=True, stroke=False)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(45, 825, "ZORORO PHUMULANI PRESENTATION LAYER PREVIEW BOOKLET")
-
-    # Big Red Warning Banner matching your email statement
-    c.setFillColor(HexColor("#dc2626"))
-    c.rect(45, 785, 505, 20, fill=True, stroke=False)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(
-        55,
-        791,
-        "NOTICE: DEMO PREVIEW ONLY · NOT A LIVE SYSTEM CONTRACT · NO POLICY ISSUED",
-    )
-
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(45, 755, f"STATUS: {policy_number}")
-    c.drawString(45, 737, f"BILLING LINKAGE: {payat_number}")
-    c.setFont("Helvetica", 10)
-    c.drawString(45, 705, f"Proposer Demographics: {title} {fname} {lname} (Gender: {gender}, Marital Status: {marital_status})")
-    c.drawString(45, 687, f"Identity Profile Value: {identity_value} ({id_doc_type})")
-    current_y = 669
-    c.drawString(45, current_y, f"Country of Residence: {country_of_residence if country_of_residence else 'N/A'}")
-    current_y -= 18 # Space for next line
-
-    # Conditionally display SADC specific country fields
-    if sadac_country_selection and country_of_origin:
-        c.drawString(45, current_y, f"SADC Country Selection: {sadac_country_selection}")
-        current_y -= 18
-        c.drawString(45, current_y, f"Country of Origin: {country_of_origin}")
-        current_y -= 18
-        c.drawString(45, current_y, f"Product Type: {product_type.replace('_', ' ').title()}")
-        current_y -= 18
-        c.drawString(45, current_y, f"Cover Option Selection: {plan_name}")
-        current_y -= 18
-        c.drawString(45, current_y, f"Calculated Premium Level: {local_total}")
-        current_y -= 18 # Ensure space for next section
-    else:
-        c.drawString(45, current_y, f"Product Type: {product_type.replace('_', ' ').title()}")
-        current_y -= 18
-        c.drawString(45, current_y, f"Cover Option Selection: {plan_name}")
-        current_y -= 18
-        c.drawString(45, current_y, f"Calculated Premium Level: {local_total}")
-        current_y -= 18 # Ensure space for next section
-
-    # Calculate starting y for IMMEDIATE DEPENDENTS based on current_y
-    y = current_y - 30 # Add a buffer space
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(45, y, "IMMEDIATE DEPENDENTS LIVES ATTACHED:")
-    c.setFont("Helvetica", 9)
-    has_dependents = False
-    for i in range(len(fam_fname)):
-        if fam_fname[i].strip() or fam_lname[i].strip(): # Check if either name part is present
-            has_dependents = True
-            y -= 18
-            c.drawString(
-                45, y, f"- [{fam_relation[i]}] {fam_fname[i]} {fam_lname[i]} (DOB: {fam_dob[i]})"
-            )
-    if not has_dependents:
-        y -= 18
-        c.drawString(45, y, "None declared.")
-
-    # PAGE 2: EXTENDED FAMILY SUMMARY
-    c.showPage()
-    c.setFillColor(HexColor("#1e3a5f"))
-    c.rect(0, 815, 595, 30, fill=True, stroke=False)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(45, 825, "EXTENDED FAMILY COVER MEMBERS & BENEFICIARIES (PAGE 2)")
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(45, 770, "NOMINATED ESTATE LEGAL CLAIM BENEFICIARY RELATIONSHIP:")
-    c.setFont("Helvetica", 10)
-    c.drawString(45, 740, f"Full Name: {ben_fname} {ben_lname}")
-    c.drawString(45, 725, f"Relationship: {ben_rel}")
-    c.drawString(45, 710, f"Contact Mobile: {ben_phone}")
-    
-    y_ext_fam = 680
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(45, y_ext_fam, "EXTENDED FAMILY COVER MEMBERS:")
-    c.setFont("Helvetica", 9)
-    has_ext_fam = False
-    for i in range(len(ext_fam_fname)):
-        if ext_fam_fname[i].strip() or ext_fam_lname[i].strip():
-            has_ext_fam = True
-            y_ext_fam -= 18
-            c.drawString(
-                45, y_ext_fam, f"- [{ext_fam_relation[i]}] {ext_fam_fname[i]} {ext_fam_lname[i]} (DOB: {ext_fam_dob[i]}) - Cover: R{ext_fam_cover[i]}"
-            )
-    if not has_ext_fam:
-        y_ext_fam -= 18
-        c.drawString(45, y_ext_fam, "None declared.")
-
-    # PAGE 3: MANDATES & DISCLAIMER SIGN-OFF
-    c.showPage()
-    c.setFillColor(HexColor("#1e3a5f"))
-    c.rect(0, 815, 595, 30, fill=True, stroke=False)
-    c.setFillColorRGB(1, 1, 1)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(45, 825, "STATUTORY MANDATE & POPIA DATA DECLARATION (PAGE 3)")
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Helvetica-Bold", 9)
-    c.drawString(45, 780, "DEBIT ORDER ELECTRONIC AUTHORIZATION FRAMEWORK MANDATE")
-    c.setFont("Helvetica", 8)
-    c.drawString(
-        45,
-        760,
-        "I the undersigned, authorize Zororo Phumulani to debit my bank account monthly.",
-    )
-    c.drawString(
-        45,
-        745,
-        f"Settlement Selection Channel: {pay_method} (Deduction Date: {deduction_date})",
-    )
-    if pay_method == "Debit Order":
-        c.drawString(45, 730, f"Banking Profile Account: {account_name} - (Acc: {account_num}) (Type: {account_type})")
-        c.drawString(45, 715, f"Account Holder Phone: {acc_holder_phone}")
-        c.drawString(45, 700, f"Commencement Date: {commencement_date}")
-
-    y_optin = 660
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(45, y_optin, "COMMUNICATION OPT-INS:")
-    c.setFont("Helvetica", 9)
-    y_optin -= 15
-    c.drawString(45, y_optin, f"- Telephone: {'Yes' if optin_phone else 'No'}")
-    y_optin -= 15
-    c.drawString(45, y_optin, f"- SMS: {'Yes' if optin_sms else 'No'}")
-    y_optin -= 15
-    c.drawString(45, y_optin, f"- Email: {'Yes' if optin_email else 'No'}")
-    y_optin -= 15
-    c.drawString(45, y_optin, f"- WhatsApp: {'Yes' if optin_whatsapp else 'No'}")
-
-    y_legal = y_optin - 30
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(45, y_legal, "LEGAL DECLARATIONS:")
-    c.setFont("Helvetica", 9)
-    y_legal -= 15
-    c.drawString(45, y_legal, f"- Terms & Conditions Accepted: {'Yes' if terms_acceptance else 'No'}")
-    y_legal -= 15
-    c.drawString(45, y_legal, f"- Needs Analysis Waiver Acknowledged: {'Yes' if needs_analysis_waiver else 'No'}")
-    y_legal -= 15
-    c.drawString(45, y_legal, f"- Mandated Intermediary Appointed: {'Yes' if intermediary_appointment else 'No'}")
-    y_legal -= 15
-    c.drawString(
-        45,
-        y_legal,
-        "• Legal Full Name Affirmation declaration confirmed: Signed by "
-        + legal_name_confirm,
-    )
-
-    # Bottom Disclaimer matching email text
-    c.setFillColor(HexColor("#fef2f2"))
-    c.rect(45, 45, 505, 40, fill=True, stroke=False)
-    c.setFillColor(HexColor("#991b1b"))
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(55, 70, "PRESENTATION LAYER PREVIEW WARNING")
-    c.setFont("Helvetica", 7.5)
-    c.drawString(
-        55,
-        56,
-        "This document was compiled locally inside standalone presentation components. It is not backed by a live",
-    )
-    c.drawString(
-        55,
-        46,
-        "Easipol core database policy registry profile, carries no real transaction ID, and is not an active issued contract.",
-    )
-
-    c.save()
+    pdf_data = {
+        "title": title, "fname": fname, "lname": lname,
+        "id_doc_type": id_doc_type, "identity_value": identity_value,
+        "dob": dob, "gender": gender, "marital_status": marital_status,
+        "phone": phone, "email": email, "address": address,
+        "sadac_country_selection": sadac_country_selection,
+        "country_of_origin": country_of_origin,
+        "country_of_residence": country_of_residence,
+        "product_type": product_type, "plan_name": plan_name,
+        "local_total": local_total,
+        "form_context": form_context,
+        "policy_number": policy_number,
+        "fam_relation": fam_relation, "fam_fname": fam_fname,
+        "fam_lname": fam_lname, "fam_dob": fam_dob,
+        "ben_fname": ben_fname, "ben_lname": ben_lname,
+        "ben_rel": ben_rel, "ben_phone": ben_phone,
+        "ext_fam_relation": ext_fam_relation, "ext_fam_fname": ext_fam_fname,
+        "ext_fam_lname": ext_fam_lname, "ext_fam_dob": ext_fam_dob,
+        "ext_fam_cover": ext_fam_cover,
+        "pay_method": pay_method, "bank_name": bank_name,
+        "account_name": account_name, "account_num": account_num,
+        "branch_code": branch_code, "account_type": account_type,
+        "acc_holder_phone": acc_holder_phone,
+        "commencement_date": commencement_date, "deduction_date": deduction_date,
+        "optin_phone": optin_phone, "optin_sms": optin_sms,
+        "optin_email": optin_email, "optin_whatsapp": optin_whatsapp,
+        "terms_acceptance": terms_acceptance,
+        "needs_analysis_waiver": needs_analysis_waiver,
+        "intermediary_appointment": intermediary_appointment,
+        "legal_name_confirm": legal_name_confirm,
+    }
+    pdf_builder.build_policy_pdf(pdf_path, pdf_data, stillborn_review)
 
     # Trigger Phase 2 Email Flow (Non-blocking background task)
     with open(pdf_path, "rb") as f:

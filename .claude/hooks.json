@@ -1,0 +1,1 @@
+﻿{"hooks":{"PostToolUse":[{"matcher":"Edit|Write|Create","hooks":[{"type":"command","command":"flake8 . && pytest --tb=short -q"}]}],"Stop":[{"hooks":[{"type":"command","command":"flake8 . && pytest --tb=short -q"}]}]}}
