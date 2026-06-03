@@ -339,7 +339,7 @@ async def submit_policy(
     tsf_doc: UploadFile = File(default=None),
     form_context: str = Form(default="local"),
 ):
-    clean_phone = phone.strip().replace(" ", "")
+    clean_phone = validators.canonicalize_sa_phone(phone)
     if clean_phone in load_registered_phone_numbers():
         raise HTTPException(
             status_code=400,

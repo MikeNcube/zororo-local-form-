@@ -13,6 +13,21 @@ def validate_required_fields(**kwargs: str) -> List[str]:
     return [f for f in required if not kwargs.get(f, '').strip()]
 
 
+def canonicalize_sa_phone(phone: str) -> str:
+    """
+    Fold an SA phone number to a single canonical form ('0XXXXXXXXX').
+    Strips spaces/dashes and rewrites leading '+27'/'27' to '0'.
+    Used so the duplicate guard cannot be bypassed by reformatting the
+    same number (C6 — phone deduplication).
+    """
+    clean = phone.strip().replace(' ', '').replace('-', '')
+    if clean.startswith('+27'):
+        clean = '0' + clean[3:]
+    elif clean.startswith('27') and len(clean) == 11:
+        clean = '0' + clean[2:]
+    return clean
+
+
 def validate_phone(phone: str) -> Optional[str]:
     """Return error string if phone is not a valid SA number, else None."""
     clean = phone.strip().replace(' ', '').replace('-', '')

@@ -8,6 +8,7 @@ import main
 from datetime import date, timedelta
 
 from validators import (
+    canonicalize_sa_phone,
     check_stillborn_flag,
     collect_validation_errors,
     validate_context_fields,
@@ -439,3 +440,34 @@ def test_submit_dependent_without_id(client):
     data["fam_dob[]"] = "2018-03-10"
     resp = client.post("/submit-global-policy", data=data)
     assert resp.status_code == 200
+
+
+# ── PHONE CANONICALIZATION (duplicate-guard hardening) ───────────────────────
+
+def test_canonicalize_phone_0_format_unchanged():
+    assert canonicalize_sa_phone("0821234567") == "0821234567"
+
+
+def test_canonicalize_phone_plus27_folds_to_0():
+    assert canonicalize_sa_phone("+27821234567") == "0821234567"
+
+
+def test_canonicalize_phone_27_folds_to_0():
+    assert canonicalize_sa_phone("27821234567") == "0821234567"
+
+
+def test_canonicalize_phone_strips_spaces_and_dashes():
+    assert canonicalize_sa_phone("+27 82 123-4567") == "0821234567"
+
+
+def test_submit_duplicate_phone_cross_format(client):
+    """Same number in +27 form must be caught as a duplicate of the 0 form."""
+    first = make_valid_form_data()
+    first["phone"] = "0821234567"
+    assert client.post("/submit-global-policy", data=first).status_code == 200
+
+    second = make_valid_form_data()
+    second["phone"] = "+27821234567"
+    resp2 = client.post("/submit-global-policy", data=second)
+    assert resp2.status_code == 400
+    assert "already been registered" in resp2.json()["detail"]
