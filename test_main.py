@@ -12,9 +12,11 @@ from validators import (
     check_stillborn_flag,
     collect_validation_errors,
     validate_context_fields,
+    validate_passport,
     validate_phone,
     validate_required_fields,
     validate_sa_id,
+    validate_zim_national_id,
 )
 
 # Known valid SA ID: DOB 1980-01-01, gender sequence 5009 (Male)
@@ -334,6 +336,7 @@ def make_valid_form_data():
         "needs_analysis_waiver": "true",
         "intermediary_appointment": "true",
         "form_context": "local",
+        "popia_consent": "true",
     }
 
 
@@ -471,3 +474,193 @@ def test_submit_duplicate_phone_cross_format(client):
     resp2 = client.post("/submit-global-policy", data=second)
     assert resp2.status_code == 400
     assert "already been registered" in resp2.json()["detail"]
+
+
+# ── PASSPORT FORMAT VALIDATION ────────────────────────────────────────────────
+
+def test_sa_passport_valid():
+    assert validate_passport("A12345678", "local") is None
+
+
+def test_sa_passport_valid_two_letters():
+    assert validate_passport("AB1234567", "local") is None
+
+
+def test_zw_passport_valid():
+    assert validate_passport("GN452257", "sadc") is None
+
+
+def test_zw_passport_valid_2():
+    assert validate_passport("BE471896", "wwfp") is None
+
+
+def test_passport_invalid_gibberish():
+    assert validate_passport("hello", "local") is not None
+    assert validate_passport("hello", "sadc") is not None
+    assert validate_passport("hello", "wwfp") is not None
+
+
+def test_passport_invalid_short():
+    assert validate_passport("A12", "local") is not None
+
+
+# ── PHONE VALIDATION — SADC/WWFP CONTEXTS ────────────────────────────────────
+
+def test_zw_phone_valid_sadc():
+    assert validate_phone("+263771234567", "sadc") is None
+
+
+def test_uk_phone_valid_wwfp():
+    assert validate_phone("+447911123456", "wwfp") is None
+
+
+def test_zw_phone_rejected_local():
+    assert validate_phone("+263771234567", "local") is not None
+
+
+def test_intl_phone_valid_wwfp():
+    assert validate_phone("+15551234567", "wwfp") is None
+
+
+def test_invalid_phone_all_contexts():
+    assert validate_phone("notaphone", "local") is not None
+    assert validate_phone("notaphone", "sadc") is not None
+    assert validate_phone("notaphone", "wwfp") is not None
+
+
+# ── SPRINT 4: EASIPOL HEADER SCAFFOLDING ─────────────────────────────────────
+
+def test_easipol_live_false_returns_demo_headers(client):
+    """EASIPOL_LIVE=False (default) must return the demo placeholder strings."""
+    resp = client.post("/submit-global-policy", data=make_valid_form_data())
+    assert resp.status_code == 200
+    assert resp.headers.get("x-easipol-policy-number") == "DEMO-PREVIEW-MODE"
+    assert resp.headers.get("x-easipol-billing-reference") == "NO-LIVE-REFERENCE"
+
+
+def test_easipol_live_true_returns_fallback(client, monkeypatch):
+    """EASIPOL_LIVE=True with no credentials must return 200 with FALLBACK policy ref."""
+    monkeypatch.setattr(main, "EASIPOL_LIVE", True)
+    resp = client.post("/submit-global-policy", data=make_valid_form_data())
+    assert resp.status_code == 200
+    assert "FALLBACK" in resp.headers.get("x-easipol-policy-number", "")
+
+
+# ── SPRINT 4: MAX DEPENDENTS ENFORCEMENT ─────────────────────────────────────
+
+def test_max_dependents_exceeded(client):
+    """8 immediate family entries must be rejected with 422."""
+    data = make_valid_form_data()
+    data["fam_relation"] = ["Spouse"] + ["Child"] * 7
+    data["fam_fname"] = ["Jane"] + ["Child%d" % i for i in range(7)]
+    data["fam_lname"] = ["Moyo"] * 8
+    data["fam_dob"] = ["2000-01-01"] * 8
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 422
+    assert "dependents" in resp.json()["detail"].lower()
+
+
+def test_max_dependents_within_limit(client):
+    """Exactly 7 immediate family entries must be accepted."""
+    data = make_valid_form_data()
+    data["fam_relation"] = ["Spouse"] + ["Child"] * 6
+    data["fam_fname"] = ["Jane"] + ["Child%d" % i for i in range(6)]
+    data["fam_lname"] = ["Moyo"] * 7
+    data["fam_dob"] = ["2000-01-01"] + ["2010-01-01"] * 6
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 200
+
+
+# ── SPRINT 4: BANKING BANNER IN HTML ─────────────────────────────────────────
+
+def test_banking_banner_in_html(client):
+    """GET / must render the Easipol banking info banner element."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "easipolBankingBanner" in resp.text
+
+
+# ── SPRINT 5: ZIMBABWE NATIONAL ID VALIDATION ────────────────────────────────
+
+def test_zim_national_id_valid_male():
+    """63-123456A78: position 8 digit = '6' (≥5) → Male → valid format."""
+    assert validate_zim_national_id("63-123456A78") is True
+
+
+def test_zim_national_id_valid_female():
+    """08-300874Y46: position 8 digit = '4' (<5) → Female → valid format."""
+    assert validate_zim_national_id("08-300874Y46") is True
+
+
+def test_zim_national_id_wrong_format():
+    """No hyphen separator → does not match format."""
+    assert validate_zim_national_id("63123456A78") is False
+
+
+def test_zim_national_id_wrong_check_letter_position():
+    """Letter after 5 digits instead of 6 → wrong position → invalid."""
+    assert validate_zim_national_id("63-12345A678") is False
+
+
+# ── SPRINT 5: BENEFICIARY DEFERRAL ───────────────────────────────────────────
+
+def test_submit_no_beneficiary_bene_deferred(client):
+    """Submission with all beneficiary fields empty returns 200 and X-Bene-Deferred: true."""
+    data = make_valid_form_data()
+    data["ben_fname"] = ""
+    data["ben_lname"] = ""
+    data["ben_rel"] = ""
+    data["ben_phone"] = ""
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 200
+    assert resp.headers.get("x-bene-deferred") == "true"
+
+
+def test_submit_with_beneficiary_bene_not_deferred(client):
+    """Submission with beneficiary fully filled returns 200 and X-Bene-Deferred: false."""
+    resp = client.post("/submit-global-policy", data=make_valid_form_data())
+    assert resp.status_code == 200
+    assert resp.headers.get("x-bene-deferred") == "false"
+
+
+# ── SPRINT 6: POPIA CONSENT ENFORCEMENT ──────────────────────────────────────
+
+def test_popia_consent_missing_returns_422(client):
+    """Omitting popia_consent must return 422."""
+    data = make_valid_form_data()
+    data["popia_consent"] = ""
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 422
+    assert "popia" in resp.json()["detail"].lower()
+
+
+def test_popia_consent_false_returns_422(client):
+    """popia_consent='false' must return 422."""
+    data = make_valid_form_data()
+    data["popia_consent"] = "false"
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 422
+    assert "popia" in resp.json()["detail"].lower()
+
+
+def test_popia_consent_true_returns_200(client):
+    """popia_consent='true' must return 200."""
+    resp = client.post("/submit-global-policy", data=make_valid_form_data())
+    assert resp.status_code == 200
+
+
+# ── SPRINT 6: EASIPOL RESILIENCE ─────────────────────────────────────────────
+
+def test_easipol_live_true_fallback_never_501(client, monkeypatch):
+    """EASIPOL_LIVE=True must never return 501 — always 200 with FALLBACK or PENDING billing."""
+    monkeypatch.setattr(main, "EASIPOL_LIVE", True)
+    resp = client.post("/submit-global-policy", data=make_valid_form_data())
+    assert resp.status_code == 200
+    assert resp.headers.get("x-easipol-billing-reference") == "PENDING-EASIPOL"
+
+
+def test_easipol_live_false_always_demo_ref(client):
+    """EASIPOL_LIVE=False must always return DEMO-PREVIEW-MODE regardless of other config."""
+    resp = client.post("/submit-global-policy", data=make_valid_form_data())
+    assert resp.status_code == 200
+    assert resp.headers.get("x-easipol-policy-number") == "DEMO-PREVIEW-MODE"

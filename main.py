@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
+import logging
 import os
 import json
 import base64
@@ -10,6 +11,7 @@ import uvicorn
 import urllib.request
 import urllib.error
 from datetime import datetime
+from uuid import uuid4
 import validators
 import pdf_builder
 
@@ -37,6 +39,24 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 if not os.path.exists(REGISTRY_FILE):
     with open(REGISTRY_FILE, "w") as f:
         json.dump([], f)
+
+
+# ─── EASIPOL INTEGRATION CONFIG ───────────────────────────────────────────────
+EASIPOL_LIVE = os.environ.get("EASIPOL_LIVE", "false").strip().lower() == "true"
+EASIPOL_TIMEOUT = int(os.environ.get("EASIPOL_TIMEOUT", "10"))
+
+
+def _get_easipol_references() -> tuple:
+    """Return (policy_number, billing_reference). Falls back gracefully if unavailable."""
+    if not EASIPOL_LIVE:
+        return "DEMO-PREVIEW-MODE", "NO-LIVE-REFERENCE"
+    try:
+        # TODO: replace with real Easipol HTTP call using EASIPOL_TIMEOUT
+        raise RuntimeError("Easipol credentials not yet configured.")
+    except Exception as exc:
+        logging.warning(f"Easipol unavailable: {exc}")
+        policy_ref = f"ZP-FALLBACK-{uuid4().hex[:8].upper()}"
+        return policy_ref, "PENDING-EASIPOL"
 
 
 def load_registered_phone_numbers() -> List[str]:
@@ -156,13 +176,12 @@ def send_email_worker(to_addr: str, subject: str, html_body: str,
             provider, api_key, from_email, to_addr, subject, html_body, attachment
         )
         if ok:
-            print(f"Email dispatched via {provider} -> {to_addr}")
+            print(f"[EMAIL] Policy PDF notification dispatched via {provider}")
         return ok
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
+        exc.read()
         print(
-            f"[ERROR] PROVIDER DISPATCH ERROR: HTTP {exc.code} from {provider}: "
-            f"{detail}"
+            f"[EMAIL ERROR] Provider returned HTTP {exc.code} from {provider}"
         )
         return False
     except Exception as exc:
@@ -307,10 +326,10 @@ async def submit_policy(
     marital_status: str = Form(...),
     sadac_country_selection: str = Form(default=""),
     country_of_origin: str = Form(default=""),
-    ben_fname: str = Form(...),
-    ben_lname: str = Form(...),
-    ben_rel: str = Form(...),
-    ben_phone: str = Form(...),
+    ben_fname: str = Form(default=""),
+    ben_lname: str = Form(default=""),
+    ben_rel: str = Form(default=""),
+    ben_phone: str = Form(default=""),
     bank_name: str = Form(default=""),
     account_name: str = Form(default=""),
     account_num: str = Form(default=""),
@@ -338,13 +357,38 @@ async def submit_policy(
     passport_doc: UploadFile = File(default=None),
     tsf_doc: UploadFile = File(default=None),
     form_context: str = Form(default="local"),
+    popia_consent: str = Form(default=""),
 ):
+    # POPIA consent gate — must be explicitly "true" (POPIA Act 4 of 2013)
+    if popia_consent.strip().lower() != "true":
+        raise HTTPException(
+            status_code=422,
+            detail="POPIA consent is required to submit your application.",
+        )
+
     clean_phone = validators.canonicalize_sa_phone(phone)
     if clean_phone in load_registered_phone_numbers():
         raise HTTPException(
             status_code=400,
             detail="Guardrail Failure: A policy has already been registered with this mobile phone number.",
         )
+
+    # Immediate family count guard (SPEC §7: max 1 spouse + 6 children = 7)
+    dep_count = sum(1 for f in fam_fname if f.strip())
+    if dep_count > 7:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Maximum 7 immediate dependents permitted "
+                f"(1 spouse + up to 6 children). {dep_count} submitted."
+            ),
+        )
+
+    # Beneficiary deferral flag — all four fields empty means defer
+    bene_deferred = not any([
+        ben_fname.strip(), ben_lname.strip(),
+        ben_rel.strip(), ben_phone.strip(),
+    ])
 
     # ── VALIDATION LAYER — runs before any writes or PDF generation ─────────
     field_kwargs = dict(
@@ -364,6 +408,7 @@ async def submit_policy(
         country_of_origin=country_of_origin,
         country_of_residence=country_of_residence,
         field_kwargs=field_kwargs,
+        skip_beneficiary=bene_deferred,
     )
     if errors:
         raise HTTPException(status_code=400, detail=" | ".join(errors))
@@ -373,9 +418,7 @@ async def submit_policy(
 
     append_registered_phone_number(clean_phone)
 
-    # STICK TO THE EMAIL PLAN: EXPLICIT DEMO/PREVIEW PLACEHOLDERS
-    policy_number = "DEMO-PREVIEW-MODE"
-    payat_number = "NO-LIVE-REFERENCE"
+    policy_number, payat_number = _get_easipol_references()
 
     pdf_filename = "Zororo_Presentation_Preview_Booklet.pdf"
     pdf_path = os.path.join(PDF_DIR, pdf_filename)
@@ -410,6 +453,7 @@ async def submit_policy(
         "needs_analysis_waiver": needs_analysis_waiver,
         "intermediary_appointment": intermediary_appointment,
         "legal_name_confirm": legal_name_confirm,
+        "bene_deferred": bene_deferred,
     }
     pdf_builder.build_policy_pdf(pdf_path, pdf_data, stillborn_review)
 
@@ -430,7 +474,10 @@ async def submit_policy(
     exposed_headers = {
         "X-Easipol-Policy-Number": str(policy_number),
         "X-Easipol-Billing-Reference": str(payat_number),
-        "Access-Control-Expose-Headers": "X-Easipol-Policy-Number, X-Easipol-Billing-Reference",
+        "X-Bene-Deferred": str(bene_deferred).lower(),
+        "Access-Control-Expose-Headers": (
+            "X-Easipol-Policy-Number, X-Easipol-Billing-Reference, X-Bene-Deferred"
+        ),
     }
     return FileResponse(
         pdf_path,

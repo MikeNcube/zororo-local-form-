@@ -85,7 +85,7 @@
         </div>
     </div>
 
-    <main class="max-w-4xl mx-auto px-4 py-8 w-full flex-1">
+    <main class="max-w-4xl mx-auto px-4 py-8 w-full flex-1 pb-16">
         
         <div id="livePlatformSuccessView" class="hidden text-center space-y-6 py-12 bg-white rounded-2xl card-shadow border p-8">
             <div class="text-6xl text-amber-500"><i class="fas fa-circle-nodes"></i></div>
@@ -99,6 +99,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto pt-2">
                 <div class="p-4 bg-slate-50 border rounded-xl font-bold text-xs text-slate-400 uppercase">
                     POLICY TRACKER ID:<br><span id="outboundPolicyIdDisplayNode" class="text-slate-700 text-base tracking-wider font-mono font-black block mt-1"></span>
+                    <p id="policyStatusNotice" class="hidden font-normal normal-case tracking-normal mt-2 p-2 rounded-lg text-xs"></p>
                 </div>
                 <div class="p-4 bg-slate-50 border rounded-xl font-bold text-xs text-slate-400 uppercase">
                     BILLING LINK REFERENCE:<br><span id="outboundBillingRefDisplayNode" class="text-slate-700 text-base tracking-wider font-mono font-black block mt-1"></span>
@@ -112,6 +113,18 @@
             <div class="pt-6">
                 <a id="fileBlobDownloadAnchorLinkNode" href="#" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-black px-8 py-4 rounded-xl shadow-lg inline-block transition-transform hover:scale-[1.01]">Download Preview booklet layout Packet</a>
             </div>
+            <div id="whatsappBeneSection" class="hidden pt-4">
+                <a id="whatsappBeneLink" href="#" target="_blank" rel="noopener noreferrer" class="bg-green-500 hover:bg-green-600 text-white font-black px-6 py-3 rounded-xl shadow-md inline-flex items-center gap-2 transition-colors"><i class="fab fa-whatsapp text-lg"></i> Nominate your beneficiary via WhatsApp</a>
+            </div>
+            <div class="pt-6 max-w-lg mx-auto w-full text-left">
+                <h3 class="text-sm font-black text-slate-700 uppercase tracking-wide mb-4">What Happens Next?</h3>
+                <ol class="space-y-3">
+                    <li class="flex items-start gap-3"><span class="w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">1</span><p class="text-sm text-slate-600 pt-0.5">Your application is under review <span class="font-bold">(1–2 business days)</span></p></li>
+                    <li class="flex items-start gap-3"><span class="w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">2</span><p class="text-sm text-slate-600 pt-0.5">Easipol will send a <span class="font-bold">debit order mandate</span> to your phone/email</p></li>
+                    <li class="flex items-start gap-3"><span class="w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">3</span><p class="text-sm text-slate-600 pt-0.5">First debit on your <span class="font-bold">selected commencement date</span></p></li>
+                    <li class="flex items-start gap-3"><span class="w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">4</span><p class="text-sm text-slate-600 pt-0.5">Policy certificate issued <span class="font-bold">within 5 business days</span></p></li>
+                </ol>
+            </div>
         </div>
 
         <form id="submissionWizardForm" onsubmit="executeGlobalSubmissionWirePipeline(event)" enctype="multipart/form-data" novalidate>
@@ -122,12 +135,12 @@
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
                     <div class="flex items-center gap-3 border-b pb-4"><div class="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600 text-lg"><i class="fas fa-user"></i></div><div><h2 class="text-xl font-bold text-gray-900">Step 1: Proposer Details</h2><p class="text-sm text-gray-500">Main member demographic info panel</p></div></div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Title *</label><select name="title" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="Mr">Mr</option><option value="Mrs">Mrs</option><option value="Ms">Ms</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Title *</label><select name="title" required onchange="handleTitleChange()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="Mr">Mr</option><option value="Mrs">Mrs</option><option value="Ms">Ms</option></select></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">First Name(s) *</label><input type="text" name="fname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Surname *</label><input type="text" name="lname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">ID Type *</label><select id="idDocType" name="id_doc_type" onchange="toggleIdInputLabels()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="ID Number">SA ID Number</option><option value="Passport">Passport</option></select></div>
-                        <div class="md:col-span-2"><label id="idInputLabelNode" class="block text-xs font-bold text-gray-700 mb-1 uppercase">SA ID Number *</label><input type="text" name="identity_value" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Date of Birth *</label><input type="date" name="dob" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">ID Type *</label><select id="idDocType" name="id_doc_type" onchange="toggleIdInputLabels()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="ID Number">SA ID Number</option><option value="Passport">Passport</option><option value="ZIM National ID" id="optZimNationalId" style="display:none">Zimbabwe National ID</option></select></div>
+                        <div class="md:col-span-2"><label id="idInputLabelNode" class="block text-xs font-bold text-gray-700 mb-1 uppercase">SA ID Number *</label><input type="text" id="identityValueInput" name="identity_value" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><p id="idAutoFillTag" class="hidden text-xs text-emerald-600 font-medium mt-1">&#10003; DOB and gender auto-filled from SA ID</p><p id="zimProvinceHint" class="hidden text-xs text-teal-600 font-medium mt-1"></p><p id="zimIdErrorHint" class="hidden text-xs text-red-500 font-medium mt-1">Invalid Zimbabwe National ID format. Expected: 00-000000A00</p><p id="passportValidHint" class="hidden text-xs text-emerald-600 font-medium mt-1">&#10003; Valid Zimbabwe Passport format</p></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Date of Birth *</label><input type="date" name="dob" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><p id="dobAgeHint" class="hidden text-xs mt-1"></p></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Gender *</label><select name="gender" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Marital Status *</label><select name="marital_status" required class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none" onchange="handleMaritalStatusChange()">
                             <option value="">-- Select Status --</option>
@@ -197,9 +210,20 @@
                             </div>
                         </div>
 
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Mobile Phone *</label><input type="tel" name="phone" placeholder="e.g. 0712345678" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Mobile Phone *</label><input type="tel" id="phoneInput" name="phone" placeholder="e.g. 0712345678" required data-hint-id="phoneCanonicalHint" oninput="handlePhoneInput(this)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><p id="phoneCanonicalHint" class="hidden text-xs text-slate-400 mt-1"></p></div>
 
-                        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Physical Residential Address *</label><input type="text" name="address" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-bold text-gray-700 mb-2 uppercase">Residential Address *</label>
+                            <input type="hidden" name="address" id="addressHidden">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="md:col-span-2"><input type="text" id="addrStreet" placeholder="Street Address *" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div id="addrSuburbWrap"><input type="text" id="addrSuburb" placeholder="Suburb (optional)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div><input type="text" id="addrCity" placeholder="City *" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div id="addrSAProvinceWrap"><select id="addrSAProvince" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" onchange="serializeAddress()"><option value="">Province (optional)</option><option value="Eastern Cape">Eastern Cape</option><option value="Free State">Free State</option><option value="Gauteng">Gauteng</option><option value="KwaZulu-Natal">KwaZulu-Natal</option><option value="Limpopo">Limpopo</option><option value="Mpumalanga">Mpumalanga</option><option value="Northern Cape">Northern Cape</option><option value="North West">North West</option><option value="Western Cape">Western Cape</option></select></div>
+                                <div id="addrCountryWrap" class="hidden"><input type="text" id="addrCountry" placeholder="Country" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div><input type="text" id="addrPostal" placeholder="Postal Code (optional)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                            </div>
+                        </div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Email Address *</label><input type="email" name="email" required placeholder="proposer@domain.com" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                     </div>
                     <div class="flex justify-end pt-4 border-t"><button type="button" onclick="changeSlideView(2)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
@@ -233,12 +257,23 @@
                                 <span class="ml-2 text-sm font-medium text-gray-700">Single Plan</span>
                             </label>
                         </div>
+                        <div id="planRecommenderBox" class="hidden border border-teal-200 bg-teal-50 rounded-xl p-3">
+                            <p class="font-black text-teal-700 text-xs uppercase mb-1">&#128161; Suggested Plan</p>
+                            <p id="planRecommenderText" class="text-xs text-teal-800 leading-relaxed mb-1"></p>
+                            <p class="text-xs text-slate-400 italic">Suggestion only — you may select any plan below.</p>
+                        </div>
                         <label class="text-xs font-black text-gray-700 uppercase mt-2">Select Target Insurance Cover Variant Plan *</label>
                         <select id="productPlan" name="plan_name" onchange="runPremiumPriceCalculatorEngine()" class="w-full p-3 font-extrabold text-teal-700 border bg-white rounded-xl outline-none"></select>
                     </div>
                     
                     <div class="space-y-3">
                         <label class="text-xs font-black text-gray-800 uppercase block tracking-wide">Immediate Family Dependencies</label>
+                        <div id="depQuickTiles" class="grid grid-cols-3 gap-3">
+                            <div id="quickTileSpouse" onclick="quickAddDependent('Spouse')" class="rounded-xl border-dashed border-2 border-slate-200 p-4 text-center cursor-pointer hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-all"><div class="text-2xl mb-1">&#128145;</div><div class="font-bold text-xs text-slate-500">Add Spouse</div></div>
+                            <div onclick="quickAddDependent('Child')" class="rounded-xl border-dashed border-2 border-slate-200 p-4 text-center cursor-pointer hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-all"><div class="text-2xl mb-1">&#128118;</div><div class="font-bold text-xs text-slate-500">Add Child</div></div>
+                            <div onclick="quickAddDependent('Parent')" class="rounded-xl border-dashed border-2 border-slate-200 p-4 text-center cursor-pointer hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-all"><div class="text-2xl mb-1">&#128116;</div><div class="font-bold text-xs text-slate-500">Add Parent</div></div>
+                        </div>
+                        <p id="depLimitError" class="hidden text-red-500 text-xs font-medium mt-1"></p>
                         <div class="flex flex-col sm:flex-row gap-4">
                             <div class="flex-1 border border-teal-200 bg-teal-50 rounded-xl p-4 space-y-2">
                                 <h4 class="font-bold text-teal-700 text-sm">Spouse Details (Max 1)</h4>
@@ -277,12 +312,12 @@
                     </div>
 
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-4">
-                        <h3 class="text-xs font-black text-gray-800 uppercase tracking-wide"><i class="fas fa-hand-holding-heart text-blue-500"></i> Nominated Estate Legal Claim Beneficiary Allocation</h3>
+                        <div><h3 class="text-xs font-black text-gray-800 uppercase tracking-wide"><i class="fas fa-hand-holding-heart text-blue-500"></i> Nominated Estate Legal Claim Beneficiary Allocation</h3><p class="text-xs text-slate-500 mt-1">Optional — you may nominate within 30 days. We'll send a WhatsApp reminder after policy inception.</p></div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Name(s) *</label><input type="text" name="ben_fname" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Surname *</label><input type="text" name="ben_lname" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Relationship *</label><input type="text" name="ben_rel" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Contact Mobile *</label><input type="tel" name="ben_phone" required class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Name(s)</label><input type="text" name="ben_fname" class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Surname</label><input type="text" name="ben_lname" class="w-full px-3 py-2 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Relationship</label><select name="ben_rel" class="w-full px-3 py-2 border rounded-lg bg-white outline-none"><option value="">-- Select --</option><option value="Spouse">Spouse</option><option value="Parent">Parent</option><option value="Child">Child</option><option value="Sibling">Sibling</option><option value="Other">Other</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-600 mb-1 uppercase">Contact Mobile</label><input type="tel" id="benPhoneInput" name="ben_phone" data-hint-id="benPhoneHint" oninput="handlePhoneInput(this)" class="w-full px-3 py-2 border rounded-lg bg-white outline-none"><p id="benPhoneHint" class="hidden text-xs text-slate-400 mt-1"></p></div>
                         </div>
                     </div>
 
@@ -294,10 +329,14 @@
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
                     <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1.5 uppercase">Premium Settlement Channel *</label><select name="pay_method" id="paymentMethodSelector" onchange="toggleDebitFieldsViewBox()" class="p-3.5 font-bold border rounded-xl bg-gray-50 outline-none"><option value="PayAt">Pay@ Retail Terminal Network (Cash Box/Boxer)</option><option value="Debit Order">Debit Order Authorization Mandate</option></select></div>
                     
+                    <div id="easipolBankingBanner" class="hidden mb-2 border border-amber-200 bg-amber-50 rounded-xl p-4">
+                        <p class="text-sm font-bold text-amber-800 flex items-center gap-2"><i class="fas fa-lock text-amber-500"></i> Secure banking capture via Easipol's encrypted portal</p>
+                        <p class="text-xs text-amber-700 mt-1">Debit order fields are recorded for reference only. Full mandate capture completes through Easipol's secure portal once your application is approved.</p>
+                    </div>
                     <div id="debitAuthorizationMandateFieldsBox" class="hidden border p-5 rounded-2xl bg-teal-50/20 border-teal-100 space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Bank Name *</label><select id="bankNameNode" name="bank_name" onchange="runUniversalBranchPopulator()" class="p-3 border rounded-xl bg-white outline-none"><option value="">-- Select Bank --</option><option value="Capitec">Capitec Bank</option><option value="FNB">First National Bank (FNB)</option><option value="Standard Bank">Standard Bank</option><option value="ABSA">ABSA</option><option value="Nedbank">Nedbank</option></select></div>
-                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder Name *</label><input type="text" id="accHolderField" name="account_name" class="p-3 border rounded-xl bg-white outline-none"></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder Name *</label><input type="text" id="accHolderField" name="account_name" class="p-3 border rounded-xl bg-white outline-none"><p id="accNamePrefillHint" class="hidden text-xs text-slate-400 mt-1">Pre-filled from your name — edit if different</p></div>
                             <div class="flex flex-col">
                                 <label class="text-xs font-bold text-gray-600 mb-1">Account Number *</label>
                                 <div class="relative flex items-center">
@@ -307,8 +346,8 @@
                             </div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Branch Code *</label><input type="text" id="branchCodeField" name="branch_code" readonly class="p-3 border border-dashed rounded-xl bg-slate-100 font-bold text-slate-500 outline-none"></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Type *</label><select name="account_type" class="p-3 border rounded-xl bg-white outline-none"><option value="Current">Current / Cheque Account</option><option value="Savings">Savings Account</option><option value="Transmission">Transmission Account</option></select></div>
-                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder's Contact Number *</label><input type="tel" name="acc_holder_phone" required class="p-3 border rounded-xl bg-white outline-none"></div>
-                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Commencement Date *</label><input type="date" name="commencement_date" required class="p-3 border rounded-xl bg-white outline-none"></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Account Holder's Contact Number *</label><input type="tel" id="accHolderPhoneField" name="acc_holder_phone" required data-hint-id="accPhoneHint" oninput="handlePhoneInput(this)" class="p-3 border rounded-xl bg-white outline-none"><p id="accPhonePrefillHint" class="hidden text-xs text-slate-400 mt-1">Pre-filled from Step 1 — edit if different</p><p id="accPhoneHint" class="hidden text-xs text-slate-400 mt-1"></p></div>
+                            <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Commencement Date *</label><input type="date" id="commencementDateField" name="commencement_date" required class="p-3 border rounded-xl bg-white outline-none"><p id="commencementHint" class="hidden text-xs text-slate-400 mt-1">Standard commencement — 1st of next month</p></div>
                             <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1">Target Deduction Calendar Date *</label><select id="deductionDaySelectorMenu" name="deduction_date" class="p-3 border rounded-xl bg-white outline-none"></select></div>
                         </div>
                     </div>
@@ -331,14 +370,65 @@
                         <p>• <strong>Stillborn Definition:</strong> Stillborn defined as death after 25 weeks of pregnancy.  (T&C Notes)</p>
                     </div>
 
+                    <div id="policySummaryCard" class="border-l-4 border-teal-500 bg-white rounded-xl p-4 shadow-sm">
+                        <p class="text-xs font-black text-teal-700 uppercase tracking-wide mb-3">Your Policy Summary — please review before signing</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-400 uppercase text-xs mb-1">Proposer</p>
+                                <p id="sumName"></p><p id="sumId"></p><p id="sumDob"></p><p id="sumPhone"></p><p id="sumEmail"></p><p id="sumContext"></p>
+                            </div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-400 uppercase text-xs mb-1">Cover</p>
+                                <p id="sumPlanType"></p><p id="sumPlanName"></p><p id="sumPremium"></p><p id="sumCommDate"></p>
+                            </div>
+                            <div class="md:col-span-2 space-y-0.5">
+                                <p class="font-bold text-slate-400 uppercase text-xs mb-1">Dependents</p>
+                                <div id="sumDependents"></div>
+                            </div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-400 uppercase text-xs mb-1">Beneficiary</p>
+                                <p id="sumBeneficiary"></p>
+                            </div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-400 uppercase text-xs mb-1">Payment</p>
+                                <div id="sumPayment"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-blue-100 rounded-xl overflow-hidden">
+                        <button type="button" id="tcToggleBtn" onclick="document.getElementById('tcSummaryBody').classList.toggle('hidden'); this.querySelector('span').textContent = document.getElementById('tcSummaryBody').classList.contains('hidden') ? '▶' : '▼';" class="w-full text-left px-4 py-3 bg-blue-50 text-xs font-bold text-blue-700 flex items-center gap-2 hover:bg-blue-100 transition"><span>&#9654;</span> View Policy Terms &amp; Conditions Summary</button>
+                        <div id="tcSummaryBody" class="hidden px-4 py-3 text-xs text-gray-700 space-y-1.5 leading-relaxed bg-white">
+                            <p>&bull; Premiums payable monthly in advance on or before the 1st</p>
+                            <p>&bull; 3-month waiting period for immediate family — natural causes</p>
+                            <p>&bull; 6-month waiting period for extended family — natural causes</p>
+                            <p>&bull; 12-month waiting period for suicide</p>
+                            <p>&bull; Accidental death: immediate cover from first premium</p>
+                            <p>&bull; Claims must be submitted within 6 months of date of death</p>
+                            <p>&bull; Policy lapses after 45 days of arrears (60-day grace period)</p>
+                            <p>&bull; Children benefit scale: 0&ndash;5 yrs 25%, 6&ndash;13 yrs 50%, 14+ yrs 100%</p>
+                            <p>&bull; Grandchildren/foster children: legal adoption proof required</p>
+                            <p>&bull; Repatriation available to ZIM, BWA, MWI, MOZ, ZMB, TZA, DRC</p>
+                        </div>
+                    </div>
+
+                    <div class="border border-blue-100 bg-blue-50 rounded-xl p-4">
+                        <p class="text-sm font-bold text-blue-800 mb-1">Cooling-off Period</p>
+                        <p class="text-xs text-blue-700">You have 31 days from policy commencement to cancel this policy in writing with no penalty. Premiums paid during this period will be refunded in full. To cancel, contact us at info@zororo-phumulani.co.za or call 011 339 1484.</p>
+                    </div>
+
                     <div class="space-y-3 p-4 bg-slate-50 border rounded-xl">
-                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" name="terms_acceptance" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above. <a href="/terms-and-conditions" target="_blank" class="text-blue-600 hover:underline">Read full Terms & Conditions</a>.</span></label>
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="termsCheck" name="terms_acceptance" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I hereby verify that I have read, reviewed, and accept all the terms, statutory constraints, and exclusions outlined above. <a href="/terms-and-conditions" target="_blank" class="text-blue-600 hover:underline">Read full Terms &amp; Conditions</a>.</span></label>
                         <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="needsAnalysisWaiver" name="needs_analysis_waiver" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I acknowledge receipt of the Needs Analysis Waiver and understand my rights.</span></label>
                         <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="intermediaryAppointment" name="intermediary_appointment" required class="h-5 w-5 accent-teal-600 mt-0.5"><span>I confirm the appointment of the mandated intermediary for this policy.</span></label>
+                        <label class="flex items-start gap-3 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="popia_consent" name="popia_consent" value="true" class="h-5 w-5 accent-teal-600 mt-0.5"><span>I consent to Zororo Phumulani Investments (Pty) Ltd (FSP48558) collecting, processing, and storing my personal information for the purpose of administering this funeral policy, as permitted under the Protection of Personal Information Act 4 of 2013 (POPIA). My information will not be shared with third parties except as required by law or for policy underwriting by KGA Life (FSP15980).</span></label>
+                        <p id="popiaConsentError" class="hidden text-red-500 text-xs font-medium">POPIA consent is required to submit your application.</p>
                     </div>
 
                     <div class="bg-gradient-to-r from-slate-900 to-[#1e3a5f] p-5 rounded-xl text-white flex justify-between items-center font-black"><span class="text-xs text-slate-300">Total Calculated Monthly Premium:</span><span id="premiumPriceDisplayNode" class="text-xl text-teal-400">R 0.00</span><input type="hidden" name="local_total" id="hiddenPremiumInputTracker"></div>
                     <p id="wwfpExchangeRateInfoLine" class="hidden text-xs text-slate-400 italic text-right mt-1"></p>
+                    <p id="waitingPeriodHintLine" class="hidden text-xs text-slate-400 italic text-right mt-1"></p>
+                    <p id="accidentalCoverHintLine" class="hidden text-xs text-emerald-500 text-right"></p>
                     <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(2)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="button" onclick="changeSlideView(4)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
                 </div>
             </div>
@@ -347,7 +437,7 @@
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="p-4 bg-slate-50 border rounded-xl flex flex-col"><label class="text-xs font-bold mb-1.5 uppercase">Identity Document Scan *</label><input type="file" name="passport_doc" required class="bg-white p-1.5 rounded border text-xs"></div>
-                        <div class="p-4 bg-amber-50/40 border border-amber-100 rounded-xl flex flex-col"><label class="text-xs font-bold mb-1.5 uppercase">TFS Scan Booklet *</label><input type="file" name="tsf_doc" required class="bg-white p-1.5 rounded border text-xs"></div>
+                        <div class="p-4 bg-amber-50/40 border border-amber-100 rounded-xl flex flex-col"><label class="text-xs font-bold mb-1 uppercase">TFS Transfer Booklet (if transferring from another scheme)</label><p class="text-xs text-slate-400 mb-1.5">Only required if transferring from an existing policy. New applicants leave blank.</p><input type="file" name="tsf_doc" class="bg-white p-1.5 rounded border text-xs"></div>
                     </div>
                     <p class="text-xs text-slate-500 italic border border-slate-200 rounded-lg px-4 py-2 bg-slate-50">Documents required for main member only. Dependents are covered under the main member's policy.</p>
 
@@ -359,6 +449,13 @@
         </form>
     </main>
 
+    <div id="stickyPremiumBar" class="hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t-2 border-teal-600">
+        <div class="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
+            <span id="stickyBarLeft" class="text-xs text-slate-400 font-medium truncate flex-1"></span>
+            <span id="stickyBarRight" class="text-amber-400 font-black text-base whitespace-nowrap"></span>
+        </div>
+    </div>
+
     <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs border-t border-slate-800 font-medium w-full">
         <p>Zororo Phumulani Investments (Pty) Ltd · Authorized Financial Services Provider FSP48558</p>
         <p class="text-slate-600 mt-1">POPIA Infrastructure Compliant · Standalone Protection Matrix · Version 4.2.0</p>
@@ -367,8 +464,11 @@
     <script>
         let currentActiveSlideIdx = 1;
         let formState = {}; // Single source of truth for form data
+        let draftSaveTimer = null;
+        const DRAFT_BLOCKED_FIELDS = new Set(['legal_name_confirm', 'account_num', 'account_name', 'branch_code', 'acc_holder_phone']);
 
         function saveFormData() {
+            serializeAddress();
             const form = document.getElementById("submissionWizardForm");
             const inputs = form.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
@@ -396,6 +496,17 @@
                     formState[radio.name] = radio.value;
                 }
             });
+
+            // Draft save — debounced 800ms, excludes sensitive fields
+            clearTimeout(draftSaveTimer);
+            draftSaveTimer = setTimeout(function() {
+                const DRAFT_KEY = "zororo_draft_" + currentPathTierMarkerKey;
+                const payload = { _timestamp: Date.now() };
+                for (const k in formState) {
+                    if (!DRAFT_BLOCKED_FIELDS.has(k)) payload[k] = formState[k];
+                }
+                try { localStorage.setItem(DRAFT_KEY, JSON.stringify(payload)); } catch(e) {}
+            }, 800);
         }
 
         // Placeholder for loadFormData for now, as the primary issue is submission
@@ -484,8 +595,22 @@
         }
         daysSelectNode.insertAdjacentHTML('beforeend', `<option value="Last Day Of The Month">Last Day of the Month</option>`);
 
-        function toggleIdInputLabels() { document.getElementById("idInputLabelNode").innerText = document.getElementById("idDocType").value === "Passport" ? "Passport Number *" : "SA ID Number *"; }
-        function toggleDebitFieldsViewBox() { document.getElementById("debitAuthorizationMandateFieldsBox").classList.toggle("hidden", document.getElementById("paymentMethodSelector").value !== "Debit Order"); }
+        function toggleIdInputLabels() {
+            const v = document.getElementById("idDocType").value;
+            const labels = { "Passport": "Passport Number *", "ZIM National ID": "Zimbabwe National ID *" };
+            document.getElementById("idInputLabelNode").innerText = labels[v] || "SA ID Number *";
+            document.getElementById("zimProvinceHint").classList.add("hidden");
+            document.getElementById("zimIdErrorHint").classList.add("hidden");
+            document.getElementById("passportValidHint").classList.add("hidden");
+            document.getElementById("idAutoFillTag").classList.add("hidden");
+        }
+        function toggleDebitFieldsViewBox() {
+            const isDebit = document.getElementById("paymentMethodSelector").value === "Debit Order";
+            document.getElementById("debitAuthorizationMandateFieldsBox").classList.toggle("hidden", !isDebit);
+            document.getElementById("easipolBankingBanner").classList.toggle("hidden", !isDebit);
+            prefillDebitFields();
+            autoSetCommencementDate();
+        }
         function runUniversalBranchPopulator() { document.getElementById("branchCodeField").value = bankUniversalBranchCodes[document.getElementById("bankNameNode").value] || ""; }
 
         function populateSadcCountryDropdowns() {
@@ -548,24 +673,28 @@
                     productTypeToggle.classList.add("hidden");
                 }
             } else if (currentPathTierMarkerKey === 'local') {
-                localCountryOriginFieldWrapper.classList.remove("hidden");
-                localCountryOriginSelect.setAttribute("required", "required");
+                localCountryOriginFieldWrapper.classList.add("hidden");
+                localCountryOriginSelect.removeAttribute("required");
             }
             // WWFP: countryOfResidenceField is handled by handleProductTypeChange
 
-            // Lock ID type to Passport for SADC and WWFP (no SA ID Number allowed)
+            // Lock ID type for non-local contexts; show ZIM NID option for SADC
             const idDocTypeSelect = document.getElementById("idDocType");
+            const zimOpt = document.getElementById("optZimNationalId");
             if (currentPathTierMarkerKey === 'sadac' || currentPathTierMarkerKey === 'wwfp') {
                 idDocTypeSelect.value = "Passport";
                 Array.from(idDocTypeSelect.options).forEach(function(opt) {
                     if (opt.value === "ID Number") opt.disabled = true;
                 });
+                if (zimOpt) zimOpt.style.display = "";
                 toggleIdInputLabels();
             } else {
                 Array.from(idDocTypeSelect.options).forEach(function(opt) {
                     opt.disabled = false;
                 });
+                if (zimOpt) zimOpt.style.display = "none";
             }
+            updateAddressContext();
         }
 
         function handleMaritalStatusChange() {
@@ -637,23 +766,27 @@
             const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
             if (forcedType === "Spouse" && tbody.querySelectorAll("input[name='fam_relation[]'][value='Spouse']").length >= 1) { alert("Only 1 Spouse permitted."); return; }
             if (forcedType === "Child" && tbody.querySelectorAll("input[name='fam_relation[]'][value='Child']").length >= 6) { alert("Maximum configuration rule: Capped at 6 Children."); return; }
+            const planMax = getPlanMaxDeps();
+            if (tbody.querySelectorAll('tr').length >= planMax) { showDepLimitError(planMax); return; }
 
             tbody.insertAdjacentHTML("beforeend", `
                 <tr>
                     <td class="p-2"><input type="text" name="fam_relation[]" value="${forcedType}" readonly class="w-full p-2 border font-bold text-teal-700 bg-slate-50 rounded-lg outline-none"></td>
                     <td class="p-2"><input type="text" name="fam_fname[]" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2"><input type="text" name="fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="date" name="fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
-                    <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
+                    <td class="p-2"><input type="date" name="fam_dob[]" required class="w-full p-2 border rounded-lg outline-none" onblur="handleDepDobBlur(this)"><p class="dep-dob-hint hidden text-xs mt-0.5"></p></td>
+                    <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove(); updateDepLimitUI(); runPlanRecommender();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
                 </tr>
             `);
+            updateDepLimitUI();
+            runPlanRecommender();
         }
 
         function injectExtendedFamilyRowElement() {
             const tbody = document.querySelector("#extendedFamilyDataGridTable tbody");
             tbody.insertAdjacentHTML("beforeend", `
                 <tr>
-                    <td class="p-2"><input type="text" name="ext_fam_relation[]" required placeholder="e.g. Mother" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><select name="ext_fam_relation[]" required class="w-full p-2 border rounded-lg outline-none"><option value="">-- Select --</option><option value="Parent">Parent</option><option value="Grandparent">Grandparent</option><option value="Aunt/Uncle">Aunt/Uncle</option><option value="Sibling">Sibling</option><option value="Cousin">Cousin</option><option value="Other">Other</option></select></td>
                     <td class="p-2"><input type="text" name="ext_fam_fname[]" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2"><input type="text" name="ext_fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2"><input type="date" name="ext_fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
@@ -690,13 +823,12 @@
 
             let totalPremiumZAR = basePremium + extendedFamilyPremium;
             let displayText = `R ${totalPremiumZAR.toFixed(2)}`;
+            let convertedAmount = 0;
+            let currencySymbol = '';
 
             if (currentPathTierMarkerKey === 'wwfp') {
                 const countryOfResidenceInput = document.querySelector('[name="country_of_residence"]');
                 const country = countryOfResidenceInput ? countryOfResidenceInput.value.trim() : '';
-
-                let convertedAmount = 0;
-                let currencySymbol = '';
                 const rateInfo = exchangeRates[country];
 
                 if (rateInfo) {
@@ -724,6 +856,8 @@
 
             document.getElementById("premiumPriceDisplayNode").innerText = displayText;
             document.getElementById("hiddenPremiumInputTracker").value = `R ${totalPremiumZAR.toFixed(2)}`; // Always submit ZAR to backend
+            updateStickyBar(basePremium, totalPremiumZAR, convertedAmount, currencySymbol);
+            updateWaitingPeriodHint(basePremium, productPlanSelect.value);
         }
 
         function validateAccount() {
@@ -776,6 +910,7 @@
             });
             currentActiveSlideIdx = targetSlideIdx; window.scrollTo({ top: 0, behavior: 'smooth' });
             runPremiumPriceCalculatorEngine();
+            if (targetSlideIdx === 3) { prefillDebitFields(); autoSetCommencementDate(); runPolicySummaryCard(); }
         }
 
         async function executeGlobalSubmissionWirePipeline(event) {
@@ -783,10 +918,18 @@
 
             const submissionForm = document.getElementById("submissionWizardForm");
 
+            // POPIA consent frontend guard
+            const popiaEl = document.getElementById("popia_consent");
+            const popiaErrEl = document.getElementById("popiaConsentError");
+            if (popiaEl && !popiaEl.checked) {
+                if (popiaErrEl) popiaErrEl.classList.remove("hidden");
+                return false;
+            }
+            if (popiaErrEl) popiaErrEl.classList.add("hidden");
+
             try {
                 // Ensure latest data from current slide is saved before final submission
-                saveFormData(); 
-                console.log("Value of legal_name_confirm in formState:", formState['legal_name_confirm']);
+                saveFormData();
 
                 const formData = new FormData();
                 for (const key in formState) {
@@ -816,7 +959,29 @@
                 const liveBillingId = response.headers.get("X-Easipol-Billing-Reference");
                 const pdfBlob = await response.blob();
                 document.getElementById("submissionWizardForm").classList.add("hidden");
+                // Task 5: WhatsApp beneficiary nomination deep-link
+                const beneDeferred = !formState.ben_fname && !formState.ben_lname && !formState.ben_rel && !formState.ben_phone;
+                if (beneDeferred) {
+                    const waText = encodeURIComponent("I would like to nominate a beneficiary for my Zororo policy: " + livePolicyId);
+                    const waBtn = document.getElementById("whatsappBeneSection");
+                    const waLink = document.getElementById("whatsappBeneLink");
+                    if (waLink) waLink.href = "https://wa.me/27814194980?text=" + waText;
+                    if (waBtn) waBtn.classList.remove("hidden");
+                }
                 document.getElementById("outboundPolicyIdDisplayNode").innerText = livePolicyId;
+                // Task 4: policy status notice
+                const policyNoticeEl = document.getElementById("policyStatusNotice");
+                if (policyNoticeEl && livePolicyId) {
+                    if (livePolicyId.includes("FALLBACK") || livePolicyId.includes("DEMO")) {
+                        policyNoticeEl.className = "font-normal normal-case tracking-normal mt-2 p-2 rounded-lg text-xs bg-amber-50 border border-amber-200 text-amber-800";
+                        policyNoticeEl.textContent = "Your application has been received. A confirmed policy number will be issued within 1 business day once our system processes your application.";
+                        policyNoticeEl.classList.remove("hidden");
+                    } else {
+                        policyNoticeEl.className = "font-normal normal-case tracking-normal mt-2 p-2 rounded-lg text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium";
+                        policyNoticeEl.textContent = "✓ Policy reference confirmed: " + livePolicyId;
+                        policyNoticeEl.classList.remove("hidden");
+                    }
+                }
                 document.getElementById("outboundBillingRefDisplayNode").innerText = liveBillingId;
                 const ctxLabels = {'local': 'Local South Africa', 'sadc': 'SADC Regional', 'wwfp': 'Worldwide Diaspora'};
                 document.getElementById("outboundFormContextDisplayNode").innerText = ctxLabels[currentPathTierMarkerKey] || 'Local South Africa';
@@ -833,13 +998,669 @@
             }
             return false;        }
 
+        // ── TASK 3: Pre-submit policy summary card ────────────────────────────────
+        function runPolicySummaryCard() {
+            const gv = function(name) {
+                const el = document.querySelector('[name="' + name + '"]');
+                return el ? el.value || '' : '';
+            };
+            const setText = function(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+            // Proposer
+            const fullName = [gv('title'), gv('fname'), gv('lname')].filter(Boolean).join(' ');
+            const idType = gv('id_doc_type') || 'ID';
+            const idVal = gv('identity_value');
+            const maskedId = idVal.length > 4 ? '****' + idVal.slice(-4) : (idVal || '—');
+            setText('sumName', 'Name: ' + (fullName || '—'));
+            setText('sumId', idType + ': ' + maskedId);
+            setText('sumDob', 'DOB: ' + (gv('dob') || '—'));
+            setText('sumPhone', 'Phone: ' + (gv('phone') || '—'));
+            setText('sumEmail', 'Email: ' + (gv('email') || '—'));
+            const ctxLabels = { local: 'Local South Africa', sadc: 'SADC Regional', wwfp: 'Worldwide Diaspora' };
+            setText('sumContext', 'Context: ' + (ctxLabels[currentPathTierMarkerKey] || 'Local South Africa'));
+
+            // Cover
+            const planTypeEl = document.querySelector('input[name="plan_type"]:checked');
+            const planType = planTypeEl ? planTypeEl.value : '';
+            const planSel = document.getElementById("productPlan");
+            const planLabel = planSel && planSel.selectedIndex >= 0 ? planSel.options[planSel.selectedIndex].text : '—';
+            const premiumEl = document.getElementById("premiumPriceDisplayNode");
+            setText('sumPlanType', 'Plan Type: ' + (planType ? planType.charAt(0).toUpperCase() + planType.slice(1) : '—'));
+            setText('sumPlanName', 'Plan: ' + planLabel);
+            setText('sumPremium', 'Premium: ' + (premiumEl ? premiumEl.textContent : '—'));
+            setText('sumCommDate', 'Commencement: ' + (gv('commencement_date') || 'Not set'));
+
+            // Dependents
+            const depEl = document.getElementById("sumDependents");
+            if (depEl) {
+                const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
+                const rows = tbody ? tbody.querySelectorAll('tr') : [];
+                if (!rows.length) {
+                    depEl.textContent = 'No dependents declared';
+                } else {
+                    depEl.innerHTML = '';
+                    const today = new Date();
+                    rows.forEach(function(row) {
+                        const rel = (row.querySelector('[name="fam_relation[]"]') || {}).value || '';
+                        const fn  = (row.querySelector('[name="fam_fname[]"]') || {}).value || '';
+                        const ln  = (row.querySelector('[name="fam_lname[]"]') || {}).value || '';
+                        const db  = (row.querySelector('[name="fam_dob[]"]') || {}).value || '';
+                        let pct = '';
+                        if (db && rel.toLowerCase() === 'child') {
+                            const age = calcAgeFromDobString(db);
+                            if (age !== null) pct = ' [' + (age < 6 ? '25%' : (age < 14 ? '50%' : '100%')) + ']';
+                        }
+                        const p = document.createElement('p');
+                        p.textContent = rel + ' — ' + [fn, ln].filter(Boolean).join(' ') + (db ? ' — ' + db : '') + pct;
+                        depEl.appendChild(p);
+                    });
+                }
+            }
+
+            // Beneficiary
+            const benFn = gv('ben_fname'), benLn = gv('ben_lname'), benRel = gv('ben_rel');
+            const benEl = document.getElementById("sumBeneficiary");
+            if (benEl) {
+                if (benFn || benLn) {
+                    benEl.textContent = [benFn, benLn].filter(Boolean).join(' ') + (benRel ? ' (' + benRel + ')' : '');
+                } else {
+                    benEl.textContent = 'To be nominated within 30 days via WhatsApp';
+                }
+            }
+
+            // Payment
+            const payEl = document.getElementById("sumPayment");
+            if (payEl) {
+                const payMethod = gv('pay_method');
+                let lines = ['Method: ' + (payMethod || '—')];
+                if (payMethod === 'Debit Order') {
+                    const bank = gv('bank_name');
+                    const accType = gv('account_type');
+                    const accNum = gv('account_num');
+                    const maskedAcc = accNum.length > 4 ? '****' + accNum.slice(-4) : (accNum || '—');
+                    const dedDay = gv('deduction_date');
+                    if (bank) lines.push('Bank: ' + bank);
+                    if (accType) lines.push('Type: ' + accType);
+                    lines.push('Account: ' + maskedAcc);
+                    if (dedDay) lines.push('Deduction: ' + dedDay + ' of month');
+                }
+                payEl.innerHTML = lines.map(function(l) { return '<p>' + l + '</p>'; }).join('');
+            }
+        }
+
+        // ── TASK 1: Plan Recommender Engine ──────────────────────────────────────
+        function runPlanRecommender() {
+            const box = document.getElementById("planRecommenderBox");
+            const textEl = document.getElementById("planRecommenderText");
+            if (!box || !textEl) return;
+            const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
+            if (!tbody || !tbody.querySelectorAll('tr').length) { box.classList.add("hidden"); return; }
+
+            let hasSpouse = false, under21 = 0, over21 = 0;
+            const notes = [];
+            const today = new Date();
+
+            tbody.querySelectorAll("tr").forEach(function(row) {
+                const rel = (row.querySelector('[name="fam_relation[]"]') || {}).value || '';
+                const dobVal = (row.querySelector('[name="fam_dob[]"]') || {}).value || '';
+                if (rel.toLowerCase() === 'spouse') { hasSpouse = true; return; }
+                if (rel.toLowerCase() === 'child' && dobVal) {
+                    const d = new Date(dobVal);
+                    let age = today.getFullYear() - d.getFullYear();
+                    const md = today.getMonth() - d.getMonth();
+                    if (md < 0 || (md === 0 && today.getDate() < d.getDate())) age--;
+                    if (age < 21) {
+                        under21++;
+                        if (age < 6) notes.push("Child " + age + " yrs (25% benefit)");
+                        else if (age < 14) notes.push("Child " + age + " yrs (50% benefit)");
+                        else notes.push("Child " + age + " yrs (100% benefit)");
+                    } else {
+                        over21++;
+                        notes.push("Adult child " + age + " yrs → Extended Family");
+                    }
+                }
+            });
+
+            let planType = 'single', summary = '', reason = '';
+            if (hasSpouse || under21 > 0) {
+                planType = 'family';
+                summary = (hasSpouse ? "Spouse" : "") + (hasSpouse && under21 > 0 ? " + " : "") + (under21 > 0 ? under21 + " child(ren) under 21" : "");
+                reason = hasSpouse ? "Family plan required when spouse is covered" : "Family plan covers children under 21";
+            } else if (over21 > 0) {
+                summary = over21 + " adult child(ren) over 21";
+                reason = "Single plan — add adult children as Extended Family";
+            } else {
+                summary = "Main member only";
+                reason = "Single plan suits individual cover";
+            }
+            const detail = notes.length ? ' &middot; ' + notes.join(', ') : '';
+            textEl.innerHTML = 'Based on your family: <strong>' + summary + '</strong>' + detail + '<br>We suggest: <strong>' + (planType === 'family' ? 'Family Plan' : 'Single Plan') + '</strong> &mdash; ' + reason;
+            box.classList.remove("hidden");
+
+            const radio = document.querySelector('input[name="plan_type"][value="' + planType + '"]');
+            if (radio && !radio.checked) { radio.checked = true; populateProductPlans(); }
+        }
+
+        // ── TASK 3: Structured address serialisation ─────────────────────────────
+        function serializeAddress() {
+            const g = function(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+            const street = g('addrStreet');
+            const suburb = g('addrSuburb');
+            const city   = g('addrCity');
+            const saProvince = g('addrSAProvince');
+            const country    = g('addrCountry');
+            const postal     = g('addrPostal');
+            const province = saProvince || country;
+            const parts = [street, suburb, city, province, postal].filter(Boolean);
+            const hidden = document.getElementById("addressHidden");
+            if (hidden) hidden.value = parts.join(', ');
+        }
+
+        function updateAddressContext() {
+            const ctx = currentPathTierMarkerKey;
+            const suburbWrap   = document.getElementById("addrSuburbWrap");
+            const saProvWrap   = document.getElementById("addrSAProvinceWrap");
+            const countryWrap  = document.getElementById("addrCountryWrap");
+            const countryInput = document.getElementById("addrCountry");
+            if (ctx === 'local') {
+                if (suburbWrap) suburbWrap.classList.remove("hidden");
+                if (saProvWrap) saProvWrap.classList.remove("hidden");
+                if (countryWrap) countryWrap.classList.add("hidden");
+            } else if (ctx === 'sadc') {
+                if (suburbWrap) suburbWrap.classList.add("hidden");
+                if (saProvWrap) saProvWrap.classList.add("hidden");
+                if (countryWrap) countryWrap.classList.remove("hidden");
+                // Pre-fill country from country_of_origin if set
+                const originSel = document.getElementById("countryOriginSelect");
+                if (originSel && originSel.value && countryInput) countryInput.value = originSel.value;
+            } else { // wwfp
+                if (suburbWrap) suburbWrap.classList.add("hidden");
+                if (saProvWrap) saProvWrap.classList.add("hidden");
+                if (countryWrap) countryWrap.classList.remove("hidden");
+            }
+            serializeAddress();
+        }
+
+        // ── TASK 4: Max dependents enforcement ───────────────────────────────────
+        function getPlanMaxDeps() {
+            return 7; // SPEC §7: max 1 spouse + 6 children for all current plans
+        }
+
+        function showDepLimitError(max) {
+            const errEl = document.getElementById("depLimitError");
+            if (!errEl) return;
+            const planSelect = document.getElementById("productPlan");
+            const planLabel = planSelect.options[planSelect.selectedIndex] ? planSelect.options[planSelect.selectedIndex].text : "this plan";
+            errEl.textContent = "Plan " + planLabel + " allows a maximum of " + max + " immediate dependents. Upgrade your plan to add more.";
+            errEl.classList.remove("hidden");
+            setTimeout(function() { errEl.classList.add("hidden"); }, 5000);
+        }
+
+        function updateDepLimitUI() {
+            const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
+            if (!tbody) return;
+            const planMax = getPlanMaxDeps();
+            const atMax = tbody.querySelectorAll('tr').length >= planMax;
+            const addSpouseBtn = document.querySelector("button[onclick=\"injectDependentRowElement('Spouse')\"]");
+            const addChildBtn = document.querySelector("button[onclick=\"injectDependentRowElement('Child')\"]");
+            if (addSpouseBtn) addSpouseBtn.disabled = atMax;
+            if (addChildBtn) addChildBtn.disabled = atMax;
+            updateQuickTileVisibility();
+        }
+
+        // ── FEATURE 1: Sticky premium bar ────────────────────────────────────────
+        function updateStickyBar(basePremium, totalPremiumZAR, convertedAmount, currencySymbol) {
+            const bar = document.getElementById("stickyPremiumBar");
+            if (!bar) return;
+            if (basePremium <= 0) { bar.classList.add("hidden"); return; }
+            const productPlanSelect = document.getElementById("productPlan");
+            const selectedOpt = productPlanSelect.options[productPlanSelect.selectedIndex];
+            const planLabel = selectedOpt ? selectedOpt.text : "Plan selected";
+            const leftEl = document.getElementById("stickyBarLeft");
+            const rightEl = document.getElementById("stickyBarRight");
+            if (leftEl) leftEl.textContent = "Plan: " + planLabel;
+            let rightText = "R " + totalPremiumZAR.toFixed(2) + "/month";
+            if (currencySymbol && convertedAmount > 0) rightText += " · " + currencySymbol + convertedAmount.toFixed(2);
+            if (rightEl) rightEl.textContent = rightText;
+            bar.classList.remove("hidden");
+        }
+
+        // ── FEATURE 4: Waiting period end date ───────────────────────────────────
+        function updateWaitingPeriodHint(basePremium, planValue) {
+            const hintEl = document.getElementById("waitingPeriodHintLine");
+            const accEl = document.getElementById("accidentalCoverHintLine");
+            if (!hintEl || !accEl) return;
+            if (basePremium <= 0 || !planValue) { hintEl.classList.add("hidden"); accEl.classList.add("hidden"); return; }
+            const now = new Date();
+            const comm = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const waitEnd = new Date(comm.getFullYear(), comm.getMonth() + 3, 1); // 3 months — immediate family
+            const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const formatted = "1 " + MONTHS[waitEnd.getMonth()] + " " + waitEnd.getFullYear();
+            hintEl.textContent = "✓ Immediate family natural causes cover begins: " + formatted;
+            hintEl.classList.remove("hidden");
+            accEl.textContent = "✓ Accidental cover: Immediate (all members)";
+            accEl.classList.remove("hidden");
+        }
+
+        // ── TASK 1: Age calc helper ───────────────────────────────────────────────
+        function calcAgeFromDobString(dobVal) {
+            if (!dobVal) return null;
+            const parts = dobVal.split('-');
+            if (parts.length !== 3) return null;
+            const birth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            if (isNaN(birth.getTime())) return null;
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            const md = today.getMonth() - birth.getMonth();
+            if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
+            return age;
+        }
+
+        // ── TASK 1: Enhanced main-member DOB blur ─────────────────────────────────
+        function handleDobBlur() {
+            const dobInput = document.querySelector('[name="dob"]');
+            const hintEl = document.getElementById("dobAgeHint");
+            if (!dobInput || !hintEl) return;
+            const val = dobInput.value.trim();
+            if (!val) { hintEl.textContent = ''; hintEl.className = "hidden"; return; }
+            const age = calcAgeFromDobString(val);
+            if (age === null) { hintEl.className = "hidden"; return; }
+            hintEl.classList.remove("hidden");
+            const NOTE65 = " | Note: Max new member entry age is 65 (next birthday). Over-65 may only be added as extended family.";
+            if (age < 18) {
+                hintEl.className = "text-red-500 text-xs font-medium mt-1";
+                hintEl.textContent = "Must be 18 or older to be main member";
+            } else if (age <= 65) {
+                hintEl.className = "text-emerald-600 text-xs font-medium mt-1";
+                hintEl.textContent = "✓ Age: " + age + " years — eligible to join";
+            } else if (age <= 74) {
+                hintEl.className = "text-amber-500 text-xs font-medium mt-1";
+                hintEl.textContent = "Age: " + age + " years — senior member, underwriting review may apply" + NOTE65;
+            } else if (age <= 89) {
+                hintEl.className = "text-amber-500 text-xs font-medium mt-1";
+                hintEl.textContent = "Age: " + age + " years — extended family entry range, underwriting review required" + NOTE65;
+            } else {
+                hintEl.className = "text-red-500 text-xs font-medium mt-1";
+                hintEl.textContent = "Age: " + age + " years — exceeds maximum entry age of 89. Cover not available.";
+            }
+        }
+
+        // ── TASK 1: Dependent row DOB blur ────────────────────────────────────────
+        function handleDepDobBlur(inputEl) {
+            const row = inputEl.closest('tr');
+            if (!row) return;
+            const hintEl = row.querySelector('.dep-dob-hint');
+            if (!hintEl) return;
+            const dobVal = inputEl.value.trim();
+            if (!dobVal) { hintEl.textContent = ''; hintEl.className = "dep-dob-hint hidden text-xs mt-0.5"; return; }
+            const age = calcAgeFromDobString(dobVal);
+            if (age === null) { hintEl.className = "dep-dob-hint hidden text-xs mt-0.5"; return; }
+            const relInput = row.querySelector('[name="fam_relation[]"]');
+            const rel = relInput ? relInput.value.toLowerCase() : '';
+            let msg = '', color = 'text-emerald-600';
+            if (rel === 'spouse') {
+                if (age < 18) { msg = "Must be 18+"; color = 'text-red-500'; }
+                else if (age <= 65) { msg = "✓ Age " + age + " — eligible"; }
+                else { msg = "Age " + age + " — underwriting review required"; color = 'text-amber-500'; }
+            } else if (rel === 'child') {
+                if (age < 21) {
+                    const pct = age < 6 ? '25%' : (age < 14 ? '50%' : '100%');
+                    msg = "✓ Age " + age + " — covered (" + pct + " benefit)";
+                } else if (age <= 25) {
+                    msg = "Age " + age + " — eligible if unmarried full-time student. Proof required at claim."; color = 'text-amber-500';
+                } else {
+                    msg = "Age " + age + " — classify as Extended Family member."; color = 'text-amber-500';
+                }
+            } else {
+                if (age <= 89) { msg = "✓ Age " + age; }
+                else { msg = "Age " + age + " — exceeds limit of 89"; color = 'text-red-500'; }
+            }
+            hintEl.className = "dep-dob-hint text-xs mt-0.5 " + color;
+            hintEl.textContent = msg;
+        }
+
+        // ── FEATURE 2: Draft save — banner + restore ──────────────────────────────
+        function showDraftResumeBanner(draft, draftKey) {
+            const banner = document.createElement('div');
+            banner.id = "draftResumeBanner";
+            banner.className = "mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+            banner.innerHTML = '<div class="flex items-center gap-2"><span class="text-emerald-600 text-xl">&#128221;</span><div><p class="text-sm font-bold text-emerald-800">You have a saved draft</p><p class="text-xs text-emerald-600">Continue where you left off?</p></div></div><div class="flex gap-2"><button type="button" id="draftResumeBtn" class="bg-emerald-600 text-white font-bold text-xs py-2 px-4 rounded-lg hover:bg-emerald-700 transition">Resume</button><button type="button" id="draftFreshBtn" class="bg-white border border-slate-300 text-slate-600 font-bold text-xs py-2 px-4 rounded-lg hover:bg-slate-50 transition">Start Fresh</button></div>';
+            const form = document.getElementById("submissionWizardForm");
+            form.parentNode.insertBefore(banner, form);
+            document.getElementById("draftResumeBtn").addEventListener("click", function() { restoreDraft(draft); banner.remove(); });
+            document.getElementById("draftFreshBtn").addEventListener("click", function() { try { localStorage.removeItem(draftKey); } catch(e) {} banner.remove(); });
+        }
+
+        function restoreDraft(draft) {
+            const ARRAY_KEYS = new Set(['fam_relation[]','fam_fname[]','fam_lname[]','fam_dob[]','ext_fam_relation[]','ext_fam_fname[]','ext_fam_lname[]','ext_fam_dob[]','ext_fam_cover[]']);
+            for (const key in draft) {
+                if (key === '_timestamp' || ARRAY_KEYS.has(key)) continue;
+                const els = document.querySelectorAll('[name="' + key + '"]');
+                if (!els.length) continue;
+                const el = els[0];
+                if (el.type === 'checkbox') { el.checked = !!draft[key]; }
+                else if (el.type === 'radio') { els.forEach(r => { r.checked = (r.value === String(draft[key])); }); }
+                else { el.value = draft[key] || ''; }
+            }
+            // Reconstruct immediate family rows
+            const immTbody = document.querySelector("#immediateFamilyDataGridTable tbody");
+            immTbody.innerHTML = '';
+            const famRel = draft['fam_relation[]'] || [];
+            const famFn  = draft['fam_fname[]']   || [];
+            const famLn  = draft['fam_lname[]']   || [];
+            const famDob = draft['fam_dob[]']     || [];
+            famRel.forEach(function(rel, i) {
+                if (!rel) return;
+                injectDependentRowElement(rel);
+                const rows = immTbody.querySelectorAll('tr');
+                const row = rows[rows.length - 1];
+                if (!row) return;
+                const fn = row.querySelector('[name="fam_fname[]"]');
+                const ln = row.querySelector('[name="fam_lname[]"]');
+                const db = row.querySelector('[name="fam_dob[]"]');
+                if (fn) fn.value = famFn[i] || '';
+                if (ln) ln.value = famLn[i] || '';
+                if (db) db.value = famDob[i] || '';
+            });
+            // Reconstruct extended family rows
+            const extTbody = document.querySelector("#extendedFamilyDataGridTable tbody");
+            extTbody.innerHTML = '';
+            const extRel = draft['ext_fam_relation[]'] || [];
+            const extFn  = draft['ext_fam_fname[]']    || [];
+            const extLn  = draft['ext_fam_lname[]']    || [];
+            const extDb  = draft['ext_fam_dob[]']      || [];
+            const extCov = draft['ext_fam_cover[]']    || [];
+            extRel.forEach(function(rel, i) {
+                if (!rel) return;
+                injectExtendedFamilyRowElement();
+                const rows = extTbody.querySelectorAll('tr');
+                const row = rows[rows.length - 1];
+                if (!row) return;
+                const rs = row.querySelector('[name="ext_fam_relation[]"]');
+                const fn = row.querySelector('[name="ext_fam_fname[]"]');
+                const ln = row.querySelector('[name="ext_fam_lname[]"]');
+                const db = row.querySelector('[name="ext_fam_dob[]"]');
+                const cv = row.querySelector('[name="ext_fam_cover[]"]');
+                if (rs) rs.value = rel;
+                if (fn) fn.value = extFn[i] || '';
+                if (ln) ln.value = extLn[i] || '';
+                if (db) db.value = extDb[i] || '';
+                if (cv) cv.value = extCov[i] || '60';
+            });
+            handleMaritalStatusChange();
+            handleProductTypeChange();
+            runPremiumPriceCalculatorEngine();
+            updateQuickTileVisibility();
+            saveFormData();
+        }
+
+        // ── FEATURE 5: Quick-add tiles ────────────────────────────────────────────
+        function quickAddDependent(type) {
+            if (type === 'Parent') {
+                injectExtendedFamilyRowElement();
+                const extTbody = document.querySelector("#extendedFamilyDataGridTable tbody");
+                const rows = extTbody.querySelectorAll('tr');
+                const lastRow = rows[rows.length - 1];
+                if (lastRow) {
+                    const relSel = lastRow.querySelector('[name="ext_fam_relation[]"]');
+                    if (relSel) relSel.value = 'Parent';
+                }
+            } else {
+                injectDependentRowElement(type);
+            }
+            updateQuickTileVisibility();
+        }
+
+        function updateQuickTileVisibility() {
+            const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
+            const spouseTile = document.getElementById("quickTileSpouse");
+            if (!tbody || !spouseTile) return;
+            const hasSpouse = tbody.querySelectorAll("input[name='fam_relation[]'][value='Spouse']").length >= 1;
+            spouseTile.style.display = hasSpouse ? 'none' : '';
+        }
+
+        // ── TASK 1: ZIM province lookup (mirrors ZW_PROVINCE_CODES in validators.py) ──
+        const ZW_PROVINCE_CODES = {
+            "01":"Harare Metropolitan","02":"Harare Metropolitan","03":"Harare Metropolitan",
+            "04":"Harare Metropolitan","05":"Harare Metropolitan","06":"Harare Metropolitan",
+            "07":"Harare Metropolitan","08":"Harare Metropolitan","09":"Harare Metropolitan",
+            "10":"Mashonaland East","11":"Mashonaland East","12":"Mashonaland Central",
+            "13":"Mashonaland Central","14":"Mashonaland West","15":"Mashonaland West",
+            "16":"Matabeleland North","17":"Matabeleland North","18":"Matabeleland South",
+            "19":"Matabeleland South","20":"Midlands","21":"Midlands","22":"Masvingo",
+            "23":"Masvingo","24":"Manicaland","25":"Manicaland","26":"Bulawayo Metropolitan",
+            "27":"Bulawayo Metropolitan","28":"Bulawayo Metropolitan","29":"Matabeleland South",
+            "30":"Matabeleland South","31":"Matabeleland North","32":"Midlands","33":"Midlands",
+            "34":"Masvingo","35":"Manicaland","36":"Manicaland","37":"Mashonaland East",
+            "38":"Mashonaland Central","39":"Mashonaland West","40":"Matabeleland North",
+            "41":"Matabeleland South","42":"Midlands","43":"Masvingo","44":"Manicaland",
+            "45":"Mashonaland East","46":"Mashonaland Central","47":"Mashonaland West",
+            "48":"Matabeleland North","49":"Matabeleland South","50":"Midlands","51":"Masvingo",
+            "52":"Manicaland","53":"Mashonaland East","54":"Mashonaland Central",
+            "55":"Mashonaland West","56":"Matabeleland North","57":"Matabeleland South",
+            "58":"Midlands","59":"Masvingo","60":"Manicaland","61":"Mashonaland East",
+            "62":"Mashonaland Central","63":"Matabeleland South","64":"Matabeleland South",
+            "65":"Bulawayo Metropolitan","66":"Bulawayo Metropolitan",
+            "67":"Matabeleland North","68":"Midlands"
+        };
+
+        // ── FIX 3: SA ID → DOB + Gender auto-fill ────────────────────────────────
+        function clientLuhnCheck(id) {
+            if (id.length !== 13 || !/^\d{13}$/.test(id)) return false;
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                let d = parseInt(id[i]);
+                if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+                sum += d;
+            }
+            return (10 - sum % 10) % 10 === parseInt(id[12]);
+        }
+
+        function handleSaIdBlur(val) {
+            const tag = document.getElementById("idAutoFillTag");
+            if (!tag) return;
+            if (!val || !clientLuhnCheck(val)) { tag.classList.add("hidden"); return; }
+            const yy = parseInt(val.substring(0, 2));
+            const mm = val.substring(2, 4);
+            const dd = val.substring(4, 6);
+            const currentYear2Digit = new Date().getFullYear() % 100;
+            const year = yy <= currentYear2Digit ? 2000 + yy : 1900 + yy;
+            const dobStr = year + "-" + mm + "-" + dd;
+            const genderSeq = parseInt(val.substring(6, 10));
+            const gender = genderSeq >= 5000 ? "Male" : "Female";
+            const dobInput = document.querySelector('[name="dob"]');
+            const genderSelect = document.querySelector('select[name="gender"]');
+            if (dobInput) { dobInput.value = dobStr; dobInput.style.borderColor = "#6ee7b7"; }
+            if (genderSelect) { genderSelect.value = gender; genderSelect.style.borderColor = "#6ee7b7"; }
+            tag.classList.remove("hidden");
+        }
+
+        function handleZimIdBlur(val) {
+            const zimRe = /^\d{2}-\d{6}[A-Z]\d{2}$/;
+            const provHint = document.getElementById("zimProvinceHint");
+            const errHint = document.getElementById("zimIdErrorHint");
+            if (!val) { if (provHint) provHint.classList.add("hidden"); if (errHint) errHint.classList.add("hidden"); return; }
+            const upper = val.toUpperCase();
+            if (!zimRe.test(upper)) {
+                if (provHint) provHint.classList.add("hidden");
+                if (errHint) errHint.classList.remove("hidden");
+                return;
+            }
+            if (errHint) errHint.classList.add("hidden");
+            // Gender: digit at position 8 (0-indexed in full string including hyphen)
+            const genderDigit = parseInt(upper[8]);
+            const gender = genderDigit >= 5 ? "Male" : "Female";
+            const genderSelect = document.querySelector('select[name="gender"]');
+            if (genderSelect) { genderSelect.value = gender; genderSelect.style.borderColor = "#6ee7b7"; }
+            // Province hint
+            const districtCode = upper.substring(0, 2);
+            const province = ZW_PROVINCE_CODES[districtCode] || "Unknown District";
+            if (provHint) { provHint.textContent = "Province: " + province; provHint.classList.remove("hidden"); }
+        }
+
+        function handlePassportBlur(val) {
+            const hint = document.getElementById("passportValidHint");
+            if (!hint) return;
+            const zwRe = /^[A-Z]{2}\d{6}$/;
+            if (val && zwRe.test(val.trim().toUpperCase())) {
+                hint.classList.remove("hidden");
+            } else {
+                hint.classList.add("hidden");
+            }
+        }
+
+        function handleIdBlur() {
+            const idTypeSelect = document.getElementById("idDocType");
+            const idInput = document.getElementById("identityValueInput");
+            if (!idTypeSelect || !idInput) return;
+            const val = idInput.value.trim();
+            const idType = idTypeSelect.value;
+            if (idType === "ID Number") { handleSaIdBlur(val); }
+            else if (idType === "ZIM National ID") { handleZimIdBlur(val); }
+            else if (idType === "Passport") { handlePassportBlur(val); }
+        }
+
+        // ── FIX 4: Title → gender suggestion ─────────────────────────────────────
+        function handleTitleChange() {
+            const title = document.querySelector('select[name="title"]').value;
+            const genderSelect = document.querySelector('select[name="gender"]');
+            if (!genderSelect || genderSelect.value !== "") return;
+            if (title === "Mr") genderSelect.value = "Male";
+            else if (title === "Mrs" || title === "Ms") genderSelect.value = "Female";
+        }
+
+        // ── TASK 2: Phone flag hints ──────────────────────────────────────────────
+        function getPhoneFlag(raw) {
+            const v = raw.trim().replace(/[\s()\-]/g, '');
+            if (!v) return null;
+            if (v.startsWith('+263') || v.startsWith('00263')) return { flag: '🇿🇼', desc: 'ZIM: +263 7X XXX XXXX' };
+            if (v.startsWith('+27') || v.startsWith('27')) return { flag: '🇿🇦', desc: 'SA: 0XX XXX XXXX' };
+            if (v.startsWith('07')) return { flag: '🇿🇼', desc: 'ZIM mobile: +263 7X XXX XXXX' };
+            if (v.startsWith('0')) return { flag: '🇿🇦', desc: 'SA: 0XX XXX XXXX' };
+            if (v.startsWith('+44') || v.startsWith('044')) return { flag: '🇬🇧', desc: 'UK: +44 7XXX XXXXXX' };
+            if (v.startsWith('+1')) return { flag: '🇺🇸', desc: 'US/CA: +1 XXX XXX XXXX' };
+            if (v.startsWith('+61')) return { flag: '🇦🇺', desc: 'AU: +61 4XX XXX XXX' };
+            if (v.startsWith('+')) return { flag: '🌍', desc: 'International format detected' };
+            return null;
+        }
+
+        function updatePhoneHint(inputEl, hintEl) {
+            if (!inputEl || !hintEl) return;
+            const val = inputEl.value;
+            if (!val.trim()) { hintEl.textContent = ''; hintEl.className = "hidden"; return; }
+            const info = getPhoneFlag(val);
+            if (info) {
+                hintEl.className = "text-xs text-slate-400 mt-1";
+                hintEl.textContent = info.flag + ' ' + info.desc;
+            } else {
+                hintEl.classList.add("hidden");
+            }
+        }
+
+        function handlePhoneInput(inputEl) {
+            const hintId = inputEl.getAttribute('data-hint-id');
+            const hintEl = hintId ? document.getElementById(hintId) : null;
+            if (hintEl) updatePhoneHint(inputEl, hintEl);
+        }
+
+        // ── FIX 5: Phone blur canonicalize ────────────────────────────────────────
+        function handlePhoneBlur() {
+            const input = document.getElementById("phoneInput");
+            const hint = document.getElementById("phoneCanonicalHint");
+            if (!input || !hint) return;
+            const raw = input.value.trim();
+            if (!raw) { hint.classList.add("hidden"); return; }
+            let clean = raw.replace(/[\s-]/g, '');
+            let canonical = clean;
+            if (clean.startsWith('+27') && clean.length === 12) canonical = '0' + clean.slice(3);
+            else if (clean.startsWith('27') && clean.length === 11) canonical = '0' + clean.slice(2);
+            if (canonical !== raw) {
+                input.value = canonical;
+                hint.textContent = "Saved as: " + canonical;
+                hint.classList.remove("hidden");
+            } else {
+                hint.classList.add("hidden");
+            }
+        }
+
+        // ── FIX 6: Debit field pre-fills ─────────────────────────────────────────
+        function prefillDebitFields() {
+            if (document.getElementById("paymentMethodSelector").value !== "Debit Order") return;
+            const accNameField = document.getElementById("accHolderField");
+            const accNameHint = document.getElementById("accNamePrefillHint");
+            if (accNameField && !accNameField.value.trim() && accNameHint) {
+                const fullName = ((formState.fname || '') + ' ' + (formState.lname || '')).trim();
+                if (fullName) { accNameField.value = fullName; accNameHint.classList.remove("hidden"); }
+            }
+            const accPhoneField = document.getElementById("accHolderPhoneField");
+            const accPhoneHint = document.getElementById("accPhonePrefillHint");
+            if (accPhoneField && !accPhoneField.value.trim() && accPhoneHint && formState.phone) {
+                accPhoneField.value = formState.phone;
+                accPhoneHint.classList.remove("hidden");
+            }
+        }
+
+        // ── FIX 7: Commencement date auto-set ────────────────────────────────────
+        function autoSetCommencementDate() {
+            if (document.getElementById("paymentMethodSelector").value !== "Debit Order") return;
+            const commField = document.getElementById("commencementDateField");
+            const commHint = document.getElementById("commencementHint");
+            if (!commField || commField.value) return;
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const yyyy = first.getFullYear();
+            const mm = String(first.getMonth() + 1).padStart(2, '0');
+            commField.value = yyyy + "-" + mm + "-01";
+            if (commHint) commHint.classList.remove("hidden");
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            populateSadcCountryDropdowns(); // Populate SADC country dropdowns (also useful for local country origin)
-            handleRegionalUI(); // Handle regional specific UI (Local, SADC, WWFP)
-            handleMaritalStatusChange(); // Initialize marital status based on default selection
-            handleProductTypeChange(); // Initialize product type and plan options (will also call populateProductPlans)
+            populateSadcCountryDropdowns();
+            handleRegionalUI();
+            handleMaritalStatusChange();
+            handleProductTypeChange();
             changeSlideView(1);
-            // injectDependentRowElement('Child'); // Initial child injection should be removed or conditionally handled
+
+            // Sprint 2 — SA ID blur listener
+            const idInput = document.getElementById("identityValueInput");
+            if (idInput) idInput.addEventListener("blur", handleIdBlur);
+
+            // Sprint 2 — Remove auto-fill highlight when user overrides manually
+            const dobField = document.querySelector('[name="dob"]');
+            if (dobField) {
+                dobField.addEventListener("change", function() { this.style.borderColor = ""; handleDobBlur(); });
+                dobField.addEventListener("blur", handleDobBlur);
+            }
+            const genderSel = document.querySelector('select[name="gender"]');
+            if (genderSel) genderSel.addEventListener("change", function() { this.style.borderColor = ""; });
+
+            // Sprint 2 — Phone canonicalize blur listener
+            const phoneInput = document.getElementById("phoneInput");
+            if (phoneInput) phoneInput.addEventListener("blur", handlePhoneBlur);
+
+            // Task 3 — Initialise address context
+            updateAddressContext();
+            // Sync address country when SADC origin changes
+            const originSel = document.getElementById("countryOriginSelect");
+            if (originSel) originSel.addEventListener("change", function() {
+                const ci = document.getElementById("addrCountry");
+                if (ci && currentPathTierMarkerKey === 'sadc') { ci.value = this.value; serializeAddress(); }
+            });
+
+            // Feature 2 — Load draft from localStorage
+            const DRAFT_KEY = "zororo_draft_" + currentPathTierMarkerKey;
+            try {
+                const rawDraft = localStorage.getItem(DRAFT_KEY);
+                if (rawDraft) {
+                    const draft = JSON.parse(rawDraft);
+                    const age = Date.now() - (draft._timestamp || 0);
+                    if (age < 86400000) {
+                        showDraftResumeBanner(draft, DRAFT_KEY);
+                    } else {
+                        localStorage.removeItem(DRAFT_KEY);
+                    }
+                }
+            } catch(e) {}
         });
     </script>
 </body>
