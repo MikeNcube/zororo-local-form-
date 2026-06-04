@@ -1,10 +1,13 @@
 """
-Production-grade 3-page policy booklet generator for Zororo-Phumulani.
+3-page branded policy booklet for Zororo-Phumulani.
 Uses only ReportLab built-in fonts; no external dependencies beyond ReportLab.
+Page 1: Application details + cover selection
+Page 2: Declarations, compliance, signature
+Page 3: Terms & Conditions summary
 """
 
-import os
 import textwrap
+import os
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -14,28 +17,24 @@ from reportlab.pdfgen import canvas as rl_canvas
 
 # ─── LAYOUT ──────────────────────────────────────────────────────────────────
 PAGE_W, PAGE_H = A4          # 595.27 × 841.89 pt
-MARGIN = 45.0
+MARGIN = 40.0
 CONTENT_W = PAGE_W - 2 * MARGIN
 
-HEADER_H = 50.0
-BANNER_H = 19.0
-FOOTER_H = 28.0
+HEADER_H = 52.0
+BANNER_H = 18.0
+FOOTER_H = 32.0
 
-CONTENT_TOP = PAGE_H - HEADER_H - BANNER_H - 8.0
-CONTENT_BOT = FOOTER_H + 15.0
+CONTENT_TOP = PAGE_H - HEADER_H - BANNER_H - 10.0
+CONTENT_BOT = FOOTER_H + 14.0
 
-ROW_H = 14.0
-LABEL_W = 92.0
+LINE_H = 14.0       # standard body line height
+SEC_GAP = 14.0      # gap above section labels
+LABEL_W = 110.0     # field-label column width
 
-# Two-column dimensions for page 1
 COL_L_X = MARGIN
-COL_L_W = 235.0
-COL_R_X = MARGIN + COL_L_W + 25.0
+COL_L_W = 240.0
+COL_R_X = MARGIN + COL_L_W + 20.0
 COL_R_W = PAGE_W - MARGIN - COL_R_X
-
-# Table row heights
-T_HDR_H = 18.0
-T_ROW_H = 16.0
 
 # ─── COLOURS ─────────────────────────────────────────────────────────────────
 C_NAVY = HexColor("#1e3a5f")
@@ -44,179 +43,168 @@ C_TEAL = HexColor("#0d9488")
 C_TEAL_LT = HexColor("#f0fdfa")
 C_RED = HexColor("#dc2626")
 C_RED_LT = HexColor("#fef2f2")
-C_RED_BDR = HexColor("#fca5a5")
 C_BODY = HexColor("#1a1a2e")
-C_META = HexColor("#6b7a99")
+C_META = HexColor("#64748b")
 C_WHITE = HexColor("#ffffff")
-C_ROW_ALT = HexColor("#f0fdfa")
+C_SHADE = HexColor("#f8fafc")
 C_DIV = HexColor("#e2e8f0")
 C_BORDER = HexColor("#cbd5e1")
+C_AMBER = HexColor("#d97706")
 
 
-# ─── PAGE CHROME ─────────────────────────────────────────────────────────────
+# ─── CHROME ──────────────────────────────────────────────────────────────────
 
-def _header(c, subtitle: str) -> None:
+def _header(c, page_num: int, policy_ref: str = "") -> None:
+    # Navy bar
     c.setFillColor(C_NAVY)
     c.rect(0, PAGE_H - HEADER_H, PAGE_W, HEADER_H, fill=True, stroke=False)
     c.setFillColor(C_WHITE)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(MARGIN, PAGE_H - 22, "ZORORO PHUMULANI")
+    c.setFont("Helvetica-Bold", 17)
+    c.drawString(MARGIN, PAGE_H - 24, "ZORORO PHUMULANI")
     c.setFont("Helvetica", 8)
-    c.drawString(MARGIN, PAGE_H - 37, subtitle)
+    c.drawString(
+        MARGIN, PAGE_H - 38,
+        "Worldwide Funeral Plan  ·  FSP48558  ·  "
+        "Underwritten by KGA Life FSP15980",
+    )
+    if policy_ref:
+        c.setFont("Helvetica-Bold", 8)
+        c.drawRightString(PAGE_W - MARGIN, PAGE_H - 24, policy_ref)
     try:
-        logo_path = os.path.join("static", "logo.png")
-        if os.path.exists(logo_path):
-            c.drawImage(logo_path, PAGE_W - MARGIN - 55,
-                        PAGE_H - HEADER_H + 8, width=45, height=32,
-                        preserveAspectRatio=True, mask="auto")
+        logo = os.path.join("static", "logo.png")
+        if os.path.exists(logo):
+            c.drawImage(
+                logo, PAGE_W - MARGIN - 55, PAGE_H - HEADER_H + 8,
+                width=45, height=34, preserveAspectRatio=True, mask="auto",
+            )
     except Exception:
         pass
-    banner_y = PAGE_H - HEADER_H - BANNER_H
-    c.setFillColor(C_RED)
-    c.rect(0, banner_y, PAGE_W, BANNER_H, fill=True, stroke=False)
+    # Sub-banner
+    by = PAGE_H - HEADER_H - BANNER_H
+    c.setFillColor(C_DARK)
+    c.rect(0, by, PAGE_W, BANNER_H, fill=True, stroke=False)
     c.setFillColor(C_WHITE)
     c.setFont("Helvetica-Bold", 8)
     c.drawCentredString(
-        PAGE_W / 2, banner_y + 6,
-        "DEMO PREVIEW ONLY  \xb7  NOT A LIVE CONTRACT  \xb7  FSP 48558",
+        PAGE_W / 2, by + 5,
+        f"Page {page_num}  ·  POPIA PROTECTED  ·  CONFIDENTIAL",
     )
 
 
-def _footer(c, page_num: int) -> None:
+def _footer(c) -> None:
     c.setFillColor(C_DARK)
     c.rect(0, 0, PAGE_W, FOOTER_H, fill=True, stroke=False)
     c.setFillColor(C_WHITE)
-    c.setFont("Helvetica", 7)
+    c.setFont("Helvetica", 6.5)
+    c.drawString(
+        MARGIN, 20,
+        "Zororo Phumulani Investments (Pty) Ltd  ·  FSP48558  ·  "
+        "Office 102, 1st Floor Nzunza House, 28 Melle St, Braamfontein, "
+        "Johannesburg  ·  +27 81 419 4980",
+    )
     c.drawString(
         MARGIN, 10,
-        "Zororo Phumulani Investments (Pty) Ltd  \xb7  "
-        "FSP 48558  \xb7  Underwritten by KGA Life FSP15980",
+        "This document is POPIA-protected personal information. "
+        "Handle and store with appropriate confidentiality controls.",
     )
-    c.setFont("Helvetica-Bold", 7)
-    c.drawRightString(PAGE_W - MARGIN, 10, f"Page {page_num}")
 
 
-# ─── TYPOGRAPHY ──────────────────────────────────────────────────────────────
+# ─── PRIMITIVES ──────────────────────────────────────────────────────────────
 
-def _sec_label(c, x: float, y: float, text: str) -> None:
+def _sec(c, x: float, y: float, text: str) -> float:
+    """Draw section label. Returns y after label + underline."""
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(C_TEAL)
-    c.setFont("Helvetica-Bold", 8)
-    c.drawString(x, y, text.upper())
-    lw = c.stringWidth(text.upper(), "Helvetica-Bold", 8)
+    c.drawString(x, y, text)
+    lw = c.stringWidth(text, "Helvetica-Bold", 9)
     c.setStrokeColor(C_TEAL)
-    c.setLineWidth(0.5)
+    c.setLineWidth(0.6)
     c.line(x, y - 2, x + lw, y - 2)
-
-
-def _fit(c, text: str, font: str, size: float, max_w: float) -> str:
-    """Truncate text to fit within max_w points."""
-    if not text:
-        return "—"
-    if c.stringWidth(text, font, size) <= max_w:
-        return text
-    total_w = c.stringWidth(text, font, size)
-    ratio = max_w / total_w
-    cut = max(3, int(len(text) * ratio) - 3)
-    candidate = text[:cut] + "..."
-    while cut > 0 and c.stringWidth(candidate, font, size) > max_w:
-        cut -= 1
-        candidate = text[:cut] + "..."
-    return candidate
+    return y - 13
 
 
 def _field(c, x: float, y: float, label: str, value: str,
-           col_w: float = 235.0) -> float:
-    """Single-line label: value row. Returns next y."""
-    c.setFont("Helvetica-Bold", 7.5)
+           col_w: float = 0.0) -> float:
+    """Single label: value row. Returns next y."""
+    if col_w == 0.0:
+        col_w = CONTENT_W
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(C_META)
     c.drawString(x, y, label + ":")
     c.setFont("Helvetica", 9)
     c.setFillColor(C_BODY)
-    val = _fit(c, str(value) if value else "", "Helvetica", 9,
-               col_w - LABEL_W - 2)
-    c.drawString(x + LABEL_W, y, val)
-    return y - ROW_H
+    max_w = col_w - LABEL_W - 4
+    if c.stringWidth(str(value or ""), "Helvetica", 9) > max_w:
+        ratio = max_w / max(1, c.stringWidth(str(value or ""), "Helvetica", 9))
+        cut = max(3, int(len(str(value or "")) * ratio) - 3)
+        value = str(value or "")[:cut] + "..."
+    c.drawString(x + LABEL_W, y, str(value) if value else "—")
+    return y - LINE_H
 
 
 def _field_wrap(c, x: float, y: float, label: str, value: str,
-                col_w: float = 235.0, max_lines: int = 2) -> float:
-    """Wrapped label: value row (address, email). Returns next y."""
-    c.setFont("Helvetica-Bold", 7.5)
+                col_w: float = 0.0, max_lines: int = 2) -> float:
+    """Wrapping label: value. Returns next y."""
+    if col_w == 0.0:
+        col_w = CONTENT_W
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(C_META)
     c.drawString(x, y, label + ":")
+    avg_cw = c.stringWidth("n", "Helvetica", 9)
+    chars = max(10, int((col_w - LABEL_W - 4) / avg_cw))
+    lines = textwrap.wrap(str(value) if value else "—", chars)[:max_lines]
     c.setFont("Helvetica", 9)
     c.setFillColor(C_BODY)
-    avg_w = c.stringWidth("n", "Helvetica", 9)
-    chars = max(12, int((col_w - LABEL_W - 2) / avg_w))
-    lines = textwrap.wrap(str(value) if value else "—", chars)[:max_lines]
-    if not lines:
-        lines = ["—"]
-    for i, line in enumerate(lines):
-        c.drawString(x + LABEL_W, y - i * 11, line)
-    return y - ROW_H * max(1, len(lines)) - 2
+    for i, ln in enumerate(lines):
+        c.drawString(x + LABEL_W, y - i * 11, ln)
+    return y - LINE_H * max(1, len(lines)) - 2
 
 
-# ─── TABLE ───────────────────────────────────────────────────────────────────
-
-def _tbl_header(c, x: float, y: float,
-                cols: List[str], widths: List[float]) -> float:
-    total_w = sum(widths)
+def _tbl_hdr(c, x: float, y: float,
+             cols: List[str], widths: List[float]) -> float:
+    tw = sum(widths)
     c.setFillColor(C_NAVY)
-    c.rect(x, y - T_HDR_H + 4, total_w, T_HDR_H, fill=True, stroke=False)
+    c.rect(x, y - 16, tw, 18, fill=True, stroke=False)
     c.setFillColor(C_WHITE)
     c.setFont("Helvetica-Bold", 8)
     cx = x
     for col, w in zip(cols, widths):
         c.drawString(cx + 4, y - 1, col.upper())
         cx += w
-    return y - T_HDR_H
+    return y - 16
 
 
 def _tbl_row(c, x: float, y: float, cells: List[str],
              widths: List[float], shade: bool = False) -> float:
-    total_w = sum(widths)
+    tw = sum(widths)
     if shade:
-        c.setFillColor(C_ROW_ALT)
-        c.rect(x, y - T_ROW_H + 4, total_w, T_ROW_H, fill=True, stroke=False)
+        c.setFillColor(C_SHADE)
+        c.rect(x, y - 14, tw, 16, fill=True, stroke=False)
     c.setStrokeColor(C_DIV)
     c.setLineWidth(0.3)
-    c.line(x, y - T_ROW_H + 4, x + total_w, y - T_ROW_H + 4)
-    c.setFont("Helvetica", 8.5)
+    c.line(x, y - 14, x + tw, y - 14)
+    c.setFont("Helvetica", 9)
     c.setFillColor(C_BODY)
     cx = x
     for cell, w in zip(cells, widths):
-        s = _fit(c, str(cell) if cell else "—",
-                 "Helvetica", 8.5, w - 8)
-        c.drawString(cx + 4, y - 1, s)
+        val = str(cell) if cell else "—"
+        if c.stringWidth(val, "Helvetica", 9) > w - 8:
+            ratio = (w - 8) / max(1, c.stringWidth(val, "Helvetica", 9))
+            cut = max(3, int(len(val) * ratio) - 3)
+            val = val[:cut] + "..."
+        c.drawString(cx + 4, y - 1, val)
         cx += w
-    return y - T_ROW_H
+    return y - 14
 
 
-# ─── TICK / CROSS ────────────────────────────────────────────────────────────
-
-def _tick(c, x: float, y: float, sz: float = 7.0) -> None:
+def _tick(c, x: float, y: float) -> None:
     c.setStrokeColor(C_TEAL)
-    c.setLineWidth(1.5)
+    c.setLineWidth(1.4)
     c.setLineCap(1)
     p = c.beginPath()
-    p.moveTo(x, y + sz * 0.45)
-    p.lineTo(x + sz * 0.38, y + sz * 0.08)
-    p.lineTo(x + sz, y + sz * 0.75)
-    c.drawPath(p, stroke=True, fill=False)
-    c.setLineCap(0)
-    c.setLineWidth(0.5)
-    c.setStrokeColor(C_BODY)
-
-
-def _cross(c, x: float, y: float, sz: float = 7.0) -> None:
-    c.setStrokeColor(C_RED)
-    c.setLineWidth(1.5)
-    c.setLineCap(1)
-    p = c.beginPath()
-    p.moveTo(x + 1, y + 1)
-    p.lineTo(x + sz - 1, y + sz - 1)
-    p.moveTo(x + sz - 1, y + 1)
-    p.lineTo(x + 1, y + sz - 1)
+    p.moveTo(x, y + 3)
+    p.lineTo(x + 3, y)
+    p.lineTo(x + 7, y + 5)
     c.drawPath(p, stroke=True, fill=False)
     c.setLineCap(0)
     c.setLineWidth(0.5)
@@ -227,310 +215,473 @@ def _icon_row(c, x: float, y: float, checked: bool, label: str) -> None:
     if checked:
         _tick(c, x, y)
     else:
-        _cross(c, x, y)
+        c.setFillColor(C_META)
+        c.setFont("Helvetica", 9)
+        c.drawString(x, y, "—")
     c.setFont("Helvetica", 9)
     c.setFillColor(C_BODY)
-    c.drawString(x + 14, y + 1, label)
+    c.drawString(x + 13, y, label)
 
 
-# ─── PAGE 1: POLICY SUMMARY COVER ────────────────────────────────────────────
+# ─── PAGE 1 ───────────────────────────────────────────────────────────────────
 
-def _page1(c, d: Dict[str, Any], stillborn: bool) -> None:
-    _header(c, "Policy Application Summary")
-    _footer(c, 1)
-
+def _page1(c, d: Dict[str, Any], stillborn: bool, policy_ref: str) -> None:
+    _header(c, 1, policy_ref)
+    _footer(c)
     y = CONTENT_TOP
 
-    # ── LEFT: PROPOSER DETAILS ────────────────────────────────────────────────
-    _sec_label(c, COL_L_X, y, "Proposer Details")
-    yl = y - 16
+    # Title block
+    c.setFont("Helvetica-Bold", 13)
+    c.setFillColor(C_NAVY)
+    c.drawCentredString(PAGE_W / 2, y, "POLICY APPLICATION FORM")
+    y -= 14
+    c.setFont("Helvetica", 9)
+    c.setFillColor(C_META)
+    c.drawCentredString(
+        PAGE_W / 2, y,
+        "Worldwide Funeral Plan – Digital Application",
+    )
+    y -= 11
+    now = datetime.now()
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(
+        PAGE_W / 2, y,
+        f"Policy Ref: {policy_ref}   |   "
+        f"Submitted: {now.strftime('%d %b %Y  %H:%M')} SAST   |   "
+        "T&C Version: WWF-TC-v2025.1",
+    )
+    y -= 14
 
-    full_name = f"{d['title']} {d['fname']} {d['lname']}".strip()
-    yl = _field(c, COL_L_X, yl, "Full Name", full_name, COL_L_W)
-    yl = _field(c, COL_L_X, yl, "ID Type", d['id_doc_type'], COL_L_W)
-    yl = _field(c, COL_L_X, yl, "ID Number", d['identity_value'], COL_L_W)
-    yl = _field(c, COL_L_X, yl, "Date of Birth", d['dob'], COL_L_W)
-    yl = _field(c, COL_L_X, yl, "Gender", d['gender'], COL_L_W)
-    yl = _field(c, COL_L_X, yl, "Marital Status", d['marital_status'], COL_L_W)
-    yl = _field(c, COL_L_X, yl, "Phone", d['phone'], COL_L_W)
-    yl = _field(c, COL_L_X, yl, "Email", d['email'], COL_L_W)
-    yl = _field_wrap(c, COL_L_X, yl, "Address", d['address'], COL_L_W, 2)
+    # Stillborn flag
+    if stillborn:
+        fh = 20.0
+        c.setFillColor(C_RED_LT)
+        c.setStrokeColor(C_RED)
+        c.setLineWidth(0.8)
+        c.rect(MARGIN, y - fh, CONTENT_W, fh, fill=True, stroke=True)
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(C_RED)
+        c.drawString(
+            MARGIN + 6, y - fh + 6,
+            "REVIEW REQUIRED: Child DOB within 25 weeks of submission "
+            "(BR-DEC-02). Manual underwriting review.",
+        )
+        y -= fh + 6
 
-    sadc = bool(d.get('sadac_country_selection', '').strip())
-    wwfp = d.get('product_type', '').strip().lower() == 'wwfp'
-    if sadc:
+    # ── LEFT COLUMN: MAIN MEMBER DETAILS ──────────────────────────────────────
+    y -= 4
+    yl = _sec(c, COL_L_X, y, "Main Member Details")
+
+    full_name = (
+        f"{d.get('title','')} {d.get('fname','')} {d.get('lname','')}".strip()
+    )
+    dob_val = d.get('dob', '')
+    dob_disp = dob_val
+    if dob_val:
+        try:
+            birth = datetime.strptime(dob_val, "%Y-%m-%d")
+            age = (datetime.now() - birth).days // 365
+            dob_disp = f"{dob_val}  (age {age})"
+        except Exception:
+            pass
+
+    yl = _field(c, COL_L_X, yl, "Full Name",    full_name,              COL_L_W)
+    yl = _field(c, COL_L_X, yl, "Date of Birth", dob_disp,              COL_L_W)
+    yl = _field(c, COL_L_X, yl, "Gender",         d.get('gender', ''),  COL_L_W)
+    yl = _field(c, COL_L_X, yl, "Marital Status", d.get('marital_status', ''), COL_L_W)
+    yl = _field(c, COL_L_X, yl, "ID Type",        d.get('id_doc_type', ''), COL_L_W)
+    yl = _field(c, COL_L_X, yl, "ID / Passport",  d.get('identity_value', ''), COL_L_W)
+    yl = _field(c, COL_L_X, yl, "Phone",           d.get('phone', ''),   COL_L_W)
+    yl = _field(c, COL_L_X, yl, "Email",           d.get('email', ''),   COL_L_W)
+    yl = _field_wrap(c, COL_L_X, yl, "Address",   d.get('address', ''), COL_L_W, 2)
+
+    ctx = d.get('form_context', 'local')
+    if d.get('sadac_country_selection', '').strip():
         yl = _field(c, COL_L_X, yl, "SADC Country",
-                    d['sadac_country_selection'], COL_L_W)
+                    d.get('sadac_country_selection', ''), COL_L_W)
         yl = _field(c, COL_L_X, yl, "Country Origin",
-                    d['country_of_origin'], COL_L_W)
-    if wwfp:
+                    d.get('country_of_origin', ''), COL_L_W)
+    if ctx == 'wwfp':
         yl = _field(c, COL_L_X, yl, "Country Residence",
-                    d['country_of_residence'], COL_L_W)
+                    d.get('country_of_residence', ''), COL_L_W)
 
-    # ── RIGHT: COVER SELECTION ────────────────────────────────────────────────
-    _sec_label(c, COL_R_X, y, "Cover Selection")
-    yr = y - 16
+    # ── RIGHT COLUMN: COVER SELECTION ─────────────────────────────────────────
+    yr = y
+    yr = _sec(c, COL_R_X, yr, "Cover Selection")
 
-    _ctx_labels = {
+    ctx_labels = {
         'local': 'Local South Africa',
         'sadc': 'SADC Regional',
         'wwfp': 'Worldwide Diaspora',
     }
-    ctx_display = _ctx_labels.get(
-        d.get('form_context', 'local'), 'Local South Africa'
-    )
-    prod = d['product_type'].replace('_', ' ').title()
-    yr = _field(c, COL_R_X, yr, "Form Context", ctx_display, COL_R_W)
-    yr = _field(c, COL_R_X, yr, "Product Type", prod, COL_R_W)
-    yr = _field(c, COL_R_X, yr, "Plan", d['plan_name'], COL_R_W)
-    yr = _field(c, COL_R_X, yr, "Monthly Premium", d['local_total'], COL_R_W)
-    yr = _field(c, COL_R_X, yr, "Policy Ref",
-                d.get('policy_number', 'DEMO-PREVIEW-MODE'), COL_R_W)
+    yr = _field(c, COL_R_X, yr, "Context",
+                ctx_labels.get(ctx, 'Local South Africa'), COL_R_W)
+    yr = _field(c, COL_R_X, yr, "Plan",
+                d.get('plan_name', ''), COL_R_W)
+    yr = _field(c, COL_R_X, yr, "Monthly Premium",
+                d.get('local_total', ''), COL_R_W)
+    yr = _field(c, COL_R_X, yr, "Payment Method",
+                d.get('pay_method', ''), COL_R_W)
+    yr = _field(c, COL_R_X, yr, "Policy Reference",
+                policy_ref, COL_R_W)
 
-    # Waiting period box
-    yr -= 10
-    box_h = 60.0
+    # Divider
+    col_floor = min(yl, yr) - 6
+    c.setStrokeColor(C_DIV)
+    c.setLineWidth(0.4)
+    c.line(COL_R_X - 10, y + 4, COL_R_X - 10, col_floor)
+
+    # ── COVER DEFINITIONS BOX ─────────────────────────────────────────────────
+    bx_y = col_floor - 14
+    bx_h = 52.0
     c.setFillColor(C_TEAL_LT)
     c.setStrokeColor(C_TEAL)
     c.setLineWidth(0.6)
-    c.rect(COL_R_X, yr - box_h, COL_R_W, box_h, fill=True, stroke=True)
+    c.rect(MARGIN, bx_y - bx_h, CONTENT_W, bx_h, fill=True, stroke=True)
+    c.setFont("Helvetica-Bold", 8)
     c.setFillColor(C_TEAL)
-    c.setFont("Helvetica-Bold", 7)
-    c.drawString(COL_R_X + 6, yr - 11, "WAITING PERIODS (PER T&C)")
-    c.setFont("Helvetica", 8)
+    c.drawString(MARGIN + 7, bx_y - 12, "COVER DEFINITIONS")
+    c.setFont("Helvetica", 9)
     c.setFillColor(C_BODY)
-    c.drawString(COL_R_X + 6, yr - 24, "Immediate family (natural causes): 3 months")
-    c.drawString(COL_R_X + 6, yr - 36, "Extended family (natural causes):  6 months")
-    c.drawString(COL_R_X + 6, yr - 48, "Accidental death:                  No waiting period")
-    yr -= box_h + 8
+    c.drawString(MARGIN + 7, bx_y - 24,
+                 "Immediate Family (Main Member, Spouse, Children): "
+                 "3-month waiting period for natural causes.")
+    c.drawString(MARGIN + 7, bx_y - 36,
+                 "Extended Family (Parents, in-laws, other relatives): "
+                 "6-month waiting period for natural causes.")
+    c.drawString(MARGIN + 7, bx_y - 48,
+                 "Accidental death: no waiting period. "
+                 "Extended family max age 90.")
 
-    # Thin vertical divider between columns
-    col_floor = min(yl, yr) - 8
-    c.setStrokeColor(C_DIV)
-    c.setLineWidth(0.4)
-    c.line(COL_R_X - 13, y + 4, COL_R_X - 13, col_floor)
-
-    # ── IMMEDIATE DEPENDENTS TABLE ────────────────────────────────────────────
-    dep_y = min(yl, yr) - 18
-
-    if stillborn:
-        rh = 24.0
-        c.setFillColor(C_RED_LT)
-        c.setStrokeColor(C_RED)
-        c.setLineWidth(0.8)
-        c.rect(MARGIN, dep_y - rh, CONTENT_W, rh, fill=True, stroke=True)
-        c.setFillColor(C_RED)
-        c.setFont("Helvetica-Bold", 8)
-        c.drawString(
-            MARGIN + 6, dep_y - rh + 8,
-            "!! REVIEW REQUIRED — Child DOB within 25 weeks of submission"
-            " (BR-DEC-02). Manual underwriting review required.",
-        )
-        dep_y -= rh + 6
-
-    _sec_label(c, MARGIN, dep_y, "Immediate Dependents")
-    dep_y -= 14
-
-    t_cols = ["Relationship", "Full Name", "Date of Birth"]
-    t_widths = [120.0, 245.0, 140.0]
-    dep_y = _tbl_header(c, MARGIN, dep_y, t_cols, t_widths)
+    # ── DEPENDENTS TABLE ──────────────────────────────────────────────────────
+    tab_y = bx_y - bx_h - 16
+    tab_y = _sec(c, MARGIN, tab_y, "Immediate Dependents")
 
     fn = d.get('fam_fname', [])
     ln = d.get('fam_lname', [])
     rel = d.get('fam_relation', [])
-    dob = d.get('fam_dob', [])
-
+    dobs = d.get('fam_dob', [])
     entries = [
-        (rel[i], f"{fn[i]} {ln[i]}".strip(), dob[i])
-        for i in range(len(fn))
-        if fn[i].strip() or ln[i].strip()
+        (rel[i], f"{fn[i]} {ln[i]}".strip(), dobs[i])
+        for i in range(len(fn)) if fn[i].strip() or ln[i].strip()
     ]
 
-    max_rows = max(1, int((dep_y - CONTENT_BOT) / T_ROW_H) - 1)
+    cols = ["Relationship", "Full Name", "Date of Birth"]
+    widths = [115.0, 245.0, 155.0]
+    tab_y = _tbl_hdr(c, MARGIN, tab_y, cols, widths)
+
+    max_rows = max(1, int((tab_y - CONTENT_BOT) / 14) - 1)
     shown = entries[:max_rows]
+    for idx, (r, nm, dv) in enumerate(shown):
+        tab_y = _tbl_row(c, MARGIN, tab_y, [r, nm, dv],
+                         widths, shade=(idx % 2 == 1))
     overflow = len(entries) - len(shown)
-
-    for idx, (r, nm, d_val) in enumerate(shown):
-        dep_y = _tbl_row(c, MARGIN, dep_y, [r, nm, d_val],
-                         t_widths, shade=(idx % 2 == 1))
-
     if overflow > 0:
-        dep_y = _tbl_row(
-            c, MARGIN, dep_y,
-            [f"... and {overflow} more dependent(s)", "", ""],
-            t_widths, shade=(len(shown) % 2 == 1),
-        )
-
+        _tbl_row(c, MARGIN, tab_y,
+                 [f"... and {overflow} more dependent(s)", "", ""],
+                 widths, shade=(len(shown) % 2 == 1))
     if not entries:
-        _tbl_row(c, MARGIN, dep_y, ["None declared", "", ""],
-                 t_widths, shade=False)
+        _tbl_row(c, MARGIN, tab_y, ["None declared", "", ""],
+                 widths, shade=False)
 
 
-# ─── PAGE 2: BENEFICIARY & EXTENDED FAMILY ───────────────────────────────────
+# ─── PAGE 2 ───────────────────────────────────────────────────────────────────
 
-def _page2(c, d: Dict[str, Any]) -> None:
-    _header(c, "Beneficiary, Extended Family & Payment")
-    _footer(c, 2)
-
+def _page2(c, d: Dict[str, Any], policy_ref: str) -> None:
+    _header(c, 2, policy_ref)
+    _footer(c)
     y = CONTENT_TOP
 
-    # ── BENEFICIARY BOX ───────────────────────────────────────────────────────
-    bfull = f"{d['ben_fname']} {d['ben_lname']}".strip()
-    bx_h = 68.0
-    c.setFillColor(C_TEAL_LT)
-    c.setStrokeColor(C_TEAL)
-    c.setLineWidth(0.8)
-    c.rect(MARGIN, y - bx_h, CONTENT_W, bx_h, fill=True, stroke=True)
-    _sec_label(c, MARGIN + 6, y - 10, "Beneficiary Details")
-    by = y - 26
-    by = _field(c, MARGIN + 6, by, "Full Name", bfull, CONTENT_W - 12)
-    by = _field(c, MARGIN + 6, by, "Relationship", d['ben_rel'], CONTENT_W - 12)
-    _field(c, MARGIN + 6, by, "Contact", d['ben_phone'], CONTENT_W - 12)
-    y -= bx_h + 18
+    # ── BENEFICIARY ───────────────────────────────────────────────────────────
+    y = _sec(c, MARGIN, y, "Beneficiary Details")
+    bfull = (
+        f"{d.get('ben_fname','')} {d.get('ben_lname','')}".strip() or "—"
+    )
+    y = _field(c, MARGIN, y, "Full Name", bfull, CONTENT_W)
+    y = _field(c, MARGIN, y, "Relationship", d.get('ben_rel', ''), CONTENT_W)
+    y = _field(c, MARGIN, y, "Contact", d.get('ben_phone', ''), CONTENT_W)
+    if d.get('bene_deferred'):
+        c.setFont("Helvetica-Oblique", 8)
+        c.setFillColor(C_AMBER)
+        c.drawString(MARGIN + LABEL_W, y + LINE_H - 2,
+                     "Beneficiary deferred — to nominate within 30 days.")
+    y -= SEC_GAP
 
-    # ── EXTENDED FAMILY TABLE ─────────────────────────────────────────────────
-    _sec_label(c, MARGIN, y, "Extended Family Cover Members")
-    y -= 14
+    # ── NEEDS ANALYSIS ────────────────────────────────────────────────────────
+    y = _sec(c, MARGIN, y, "Needs Analysis & Declarations")
+    opt_vals = [k.replace("optin_", "").capitalize()
+                for k in ("optin_phone", "optin_sms", "optin_email", "optin_whatsapp")
+                if d.get(k)]
+    notif = ", ".join(opt_vals) if opt_vals else "None selected"
+    dep_count = len([f for f in d.get('fam_fname', []) if f.strip()])
 
-    ext_cols = ["Relationship", "Full Name", "Date of Birth", "Cover Amount"]
-    ext_w = [115.0, 175.0, 110.0, 105.0]
-    y = _tbl_header(c, MARGIN, y, ext_cols, ext_w)
-
-    efn = d.get('ext_fam_fname', [])
-    eln = d.get('ext_fam_lname', [])
-    erel = d.get('ext_fam_relation', [])
-    edob = d.get('ext_fam_dob', [])
-    ecov = d.get('ext_fam_cover', [])
-
-    ext_entries = [
-        (erel[i], f"{efn[i]} {eln[i]}".strip(), edob[i],
-         f"R{ecov[i]}" if ecov[i] else "—")
-        for i in range(len(efn))
-        if efn[i].strip() or eln[i].strip()
+    na_left = [
+        ("Existing Funeral Cover", "Not declared"),
+        ("Replacement Policy", "Not declared"),
+        ("Number of Dependants", str(dep_count)),
     ]
-
-    if ext_entries:
-        for idx, row in enumerate(ext_entries):
-            if y < CONTENT_BOT + 40:
-                break
-            y = _tbl_row(c, MARGIN, y, list(row), ext_w,
-                         shade=(idx % 2 == 1))
-    else:
-        y = _tbl_row(c, MARGIN, y, ["None declared", "", "", ""],
-                     ext_w, shade=False)
-
-    # ── PAYMENT DETAILS ───────────────────────────────────────────────────────
-    y -= 20
-    _sec_label(c, MARGIN, y, "Payment Details")
-    y -= 14
-
-    pay = d.get('pay_method', '')
-    y = _field(c, MARGIN, y, "Payment Method", pay, CONTENT_W)
-
-    if pay == "Debit Order":
-        y = _field(c, MARGIN, y, "Bank", d.get('bank_name', ''), CONTENT_W)
-        y = _field(c, MARGIN, y, "Account Holder",
-                   d.get('account_name', ''), CONTENT_W)
-
-        raw_acc = d.get('account_num', '')
-        masked = "****" + (raw_acc[-4:] if len(raw_acc) >= 4
-                           else raw_acc.zfill(4))
-        y = _field(c, MARGIN, y, "Account Number", masked, CONTENT_W)
-        y = _field(c, MARGIN, y, "Account Type",
-                   d.get('account_type', ''), CONTENT_W)
-        y = _field(c, MARGIN, y, "Branch Code",
-                   d.get('branch_code', ''), CONTENT_W)
-        y = _field(c, MARGIN, y, "Commencement",
-                   d.get('commencement_date', ''), CONTENT_W)
-        _field(c, MARGIN, y, "Deduction Date",
-               f"{d.get('deduction_date', '1')} of the month", CONTENT_W)
-
-
-# ─── PAGE 3: DECLARATIONS & SIGNATURE ────────────────────────────────────────
-
-def _page3(c, d: Dict[str, Any]) -> None:
-    _header(c, "Declarations & Electronic Signature")
-    _footer(c, 3)
-
-    y = CONTENT_TOP
-
-    # ── COMMUNICATION OPT-INS (2×2 grid) ─────────────────────────────────────
-    _sec_label(c, MARGIN, y, "Communication Opt-Ins")
-    y -= 18
-
-    opt_items = [
-        ("Telephone", d.get('optin_phone', False)),
-        ("SMS / Text", d.get('optin_sms', False)),
-        ("Email",      d.get('optin_email', False)),
-        ("WhatsApp",   d.get('optin_whatsapp', False)),
+    na_right = [
+        ("Notification Prefs", notif),
+        ("FAIS Advice Record", "ACCEPTED"),
+        ("Needs Analysis",     "Waiver accepted"),
     ]
-    half_w = CONTENT_W / 2
-    for i, (label, checked) in enumerate(opt_items):
-        xi = MARGIN + (i % 2) * half_w
-        yi = y - (i // 2) * 18
-        _icon_row(c, xi, yi, checked, label)
-    y -= 2 * 18 + 12
+    yl = y
+    yr = y
+    for lbl, val in na_left:
+        yl = _field(c, COL_L_X, yl, lbl, val, COL_L_W)
+    for lbl, val in na_right:
+        yr = _field(c, COL_R_X, yr, lbl, val, COL_R_W)
+    y = min(yl, yr) - SEC_GAP
 
-    # ── LEGAL DECLARATIONS ────────────────────────────────────────────────────
-    _sec_label(c, MARGIN, y, "Legal Declarations")
+    # ── AGENT DETAILS ─────────────────────────────────────────────────────────
+    y = _sec(c, MARGIN, y, "Agent / Connector Details")
+    province = (d.get('sadac_country_selection') or
+                d.get('country_of_origin') or "South Africa")
+    y = _field(c, MARGIN, y, "Agent Contact", "0814194980",
+               CONTENT_W)
+    y = _field(c, MARGIN, y, "Agent Email",
+               "simbarashencube007@gmail.com", CONTENT_W)
+    y = _field(c, MARGIN, y, "Province / Region", province, CONTENT_W)
+    y -= SEC_GAP
+
+    # ── WAITING PERIODS GRID ──────────────────────────────────────────────────
+    y = _sec(c, MARGIN, y, "Waiting Periods Summary")
+    cell_w = (CONTENT_W - 8) / 2
+    cell_h = 36.0
+    grid_data = [
+        ("Accidental Death",    "Immediate cover on first premium"),
+        ("Natural — Imm. Family", "3 calendar months"),
+        ("Natural — Ext. Family", "6 calendar months"),
+        ("Suicide",             "12 calendar months"),
+    ]
+    for i, (lbl, val) in enumerate(grid_data):
+        gx = MARGIN + (i % 2) * (cell_w + 8)
+        gy = y - (i // 2) * (cell_h + 4)
+        c.setFillColor(C_TEAL_LT)
+        c.setStrokeColor(C_TEAL)
+        c.setLineWidth(0.5)
+        c.rect(gx, gy - cell_h, cell_w, cell_h, fill=True, stroke=True)
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(C_NAVY)
+        c.drawString(gx + 6, gy - 13, lbl)
+        c.setFont("Helvetica", 9)
+        c.setFillColor(C_BODY)
+        c.drawString(gx + 6, gy - 26, val)
+    y -= 2 * (cell_h + 4) + SEC_GAP
+
+    # ── COMPLIANCE AUDIT ──────────────────────────────────────────────────────
+    y = _sec(c, MARGIN, y, "Compliance & Consent Audit Record")
+    now = datetime.now()
+    y = _field(c, MARGIN, y, "Submission Timestamp",
+               now.strftime("%d %B %Y  %H:%M:%S") + " SAST", CONTENT_W)
+    y = _field(c, MARGIN, y, "T&C Version",
+               "WWF-TC-v2025.1", CONTENT_W)
+    y = _field(c, MARGIN, y, "POPIA Consent",
+               "YES — given by applicant at submission", CONTENT_W)
+    y = _field(c, MARGIN, y, "T&C Accepted",
+               "ACCEPTED", CONTENT_W)
+    terms_ok = bool(d.get('terms_acceptance'))
+    needs_ok = bool(d.get('needs_analysis_waiver'))
+    inter_ok = bool(d.get('intermediary_appointment'))
+    for lbl, val in [
+        ("Terms & Conditions",        "ACCEPTED" if terms_ok else "NOT confirmed"),
+        ("Needs Analysis Waiver",     "ACCEPTED" if needs_ok else "NOT confirmed"),
+        ("Intermediary Appointment",  "ACCEPTED" if inter_ok else "NOT confirmed"),
+    ]:
+        y = _field(c, MARGIN, y, lbl, val, CONTENT_W)
+    y -= SEC_GAP
+
+    # ── SIGNATURE BLOCK ───────────────────────────────────────────────────────
+    y = _sec(c, MARGIN, y, "Electronic Signature — ECT Act No. 25 of 2002")
+    c.setFont("Helvetica", 9)
+    c.setFillColor(C_META)
+    c.drawString(
+        MARGIN, y,
+        "By signing below the applicant confirms acceptance of all Terms & "
+        "Conditions, POPIA consent, FAIS advice record, and Needs Analysis.",
+    )
+    y -= 11
+    c.drawString(
+        MARGIN, y,
+        "This typed legal name constitutes a binding electronic signature "
+        "under ECT Act s.13.",
+    )
     y -= 16
 
-    decl_items = [
-        ("Terms & Conditions Accepted",
-         d.get('terms_acceptance', False)),
-        ("Needs Analysis Waiver Acknowledged",
-         d.get('needs_analysis_waiver', False)),
-        ("Mandated Intermediary Appointed",
-         d.get('intermediary_appointment', False)),
-    ]
-    for label, checked in decl_items:
-        _icon_row(c, MARGIN, y, checked, label)
-        y -= 18
-
-    # ── ELECTRONIC SIGNATURE DECLARATION ─────────────────────────────────────
-    y -= 20
-    _sec_label(c, MARGIN, y, "Electronic Signature Declaration")
-    y -= 20
-
-    # Signature line (above the name)
+    # Signature line + name
     c.setStrokeColor(C_BORDER)
     c.setLineWidth(0.8)
-    c.line(MARGIN, y, MARGIN + 270, y)
-
-    # Signed name in Times-Italic below the line
-    y -= 4
-    c.setFont("Times-Italic", 16)
-    c.setFillColor(C_NAVY)
-    sig = d.get('legal_name_confirm', '')
-    c.drawString(MARGIN + 4, y - 16, sig)
-
-    # Submission date
-    sub_date = datetime.now().strftime("%d %B %Y")
+    c.line(MARGIN, y, MARGIN + 280, y)
     c.setFont("Helvetica", 8)
     c.setFillColor(C_META)
-    c.drawString(MARGIN + 4, y - 34, f"Digitally confirmed  \xb7  {sub_date}")
+    c.drawString(MARGIN, y - 9, "Applicant Signature (Electronic)")
 
-    # ── DISCLAIMER BOX ────────────────────────────────────────────────────────
-    disc_bot = CONTENT_BOT
-    disc_h = 58.0
-    c.setFillColor(C_RED_LT)
-    c.setStrokeColor(C_RED_BDR)
-    c.setLineWidth(0.8)
-    c.rect(MARGIN, disc_bot, CONTENT_W, disc_h, fill=True, stroke=True)
-    c.setFillColor(C_RED)
-    c.setFont("Helvetica-Bold", 7.5)
-    c.drawString(MARGIN + 7, disc_bot + disc_h - 12,
-                 "PRESENTATION LAYER PREVIEW — DEMO-PREVIEW-MODE")
-    disc_body = (
-        "This document is not backed by a live Easipol policy registry, "
-        "carries no transaction ID, and is not an active issued contract. "
-        "No policy has been issued. All fields are for demonstration purposes only."
+    sig = d.get('legal_name_confirm', '')
+    y -= 16
+    c.setFont("Times-Italic", 15)
+    c.setFillColor(C_NAVY)
+    c.drawString(MARGIN + 4, y, sig)
+    y -= 14
+
+    c.setFont("Helvetica", 8.5)
+    c.setFillColor(C_META)
+    c.drawString(
+        MARGIN + 4, y,
+        f"Date & Time: {now.strftime('%d %B %Y')}  |  "
+        f"{now.strftime('%H:%M')} SAST   "
+        "|   ECT Act No. 25 of 2002",
     )
-    c.setFont("Helvetica", 7.5)
+
+    # Extended family table (if any + space available)
+    efn = d.get('ext_fam_fname', [])
+    ext_entries = [
+        (d.get('ext_fam_relation', [''] * len(efn))[i],
+         f"{efn[i]} {d.get('ext_fam_lname', [''] * len(efn))[i]}".strip(),
+         d.get('ext_fam_dob', [''] * len(efn))[i],
+         f"R{d.get('ext_fam_cover', [''] * len(efn))[i]}"
+         if d.get('ext_fam_cover', [''] * len(efn))[i] else "—")
+        for i in range(len(efn)) if efn[i].strip()
+    ]
+    if ext_entries and y > CONTENT_BOT + 70:
+        y -= SEC_GAP
+        y = _sec(c, MARGIN, y, "Extended Family Cover Members")
+        ew = [110.0, 170.0, 105.0, 130.0]
+        y = _tbl_hdr(c, MARGIN, y,
+                     ["Relationship", "Full Name", "DOB", "Cover Amount"], ew)
+        for idx, row in enumerate(ext_entries):
+            if y < CONTENT_BOT + 20:
+                break
+            y = _tbl_row(c, MARGIN, y, list(row), ew, shade=(idx % 2 == 1))
+
+
+# ─── PAGE 3: TERMS & CONDITIONS ───────────────────────────────────────────────
+
+def _page3(c, d: Dict[str, Any], policy_ref: str) -> None:
+    # Extended footer for page 3
+    c.setFillColor(C_DARK)
+    c.rect(0, 0, PAGE_W, FOOTER_H, fill=True, stroke=False)
+    c.setFillColor(C_WHITE)
+    c.setFont("Helvetica", 6)
+    lines_f = [
+        "FSP: Zororo Phumulani Investments (Pty) Ltd  ·  FSP48558  ·  "
+        "28 Melle St, Braamfontein  ·  +27 81 419 4980  ·  "
+        "info@zororo-phumulani.co.za",
+        "Underwriter: KGA Life (Pty) Ltd  ·  FSP15980  ·  Stellenbosch  "
+        "·  +27 21 944 6300   |   "
+        "Claims: claims2@zororo-phumulani.co.za  ·  "
+        "customer-care@zororo-phumulani.co.za",
+        "FAIS Ombud: 0860-324766  ·  info@faisombud.co.za  ·  "
+        "www.faisombud.co.za",
+    ]
+    for i, ln in enumerate(lines_f):
+        c.drawString(MARGIN, FOOTER_H - 8 - i * 8, ln)
+
+    _header(c, 3, policy_ref)
+    y = CONTENT_TOP
+
+    # Title
+    c.setFont("Helvetica-Bold", 12)
+    c.setFillColor(C_NAVY)
+    c.drawCentredString(PAGE_W / 2, y, "Policy Terms & Conditions Summary")
+    y -= 16
+
+    # Helpers
+    def sec(text):
+        nonlocal y
+        y -= 4
+        y = _sec(c, MARGIN, y, text)
+
+    def item(text, bullet=True):
+        nonlocal y
+        chars = int(CONTENT_W / 5.0)
+        prefix = "• " if bullet else ""
+        lines = textwrap.wrap(prefix + text, chars)
+        c.setFont("Helvetica", 9)
+        c.setFillColor(C_BODY)
+        for i, ln in enumerate(lines):
+            c.drawString(MARGIN + (12 if i > 0 else 0), y, ln)
+            y -= 12
+        y -= 1
+
+    def numbered(num, text):
+        nonlocal y
+        chars = int((CONTENT_W - 20) / 5.0)
+        lines = textwrap.wrap(text, chars)
+        c.setFont("Helvetica-Bold", 9)
+        c.setFillColor(C_NAVY)
+        c.drawString(MARGIN, y, f"{num}.")
+        c.setFont("Helvetica", 9)
+        c.setFillColor(C_BODY)
+        for i, ln in enumerate(lines):
+            c.drawString(MARGIN + 18, y, ln)
+            y -= 12
+        y -= 1
+
+    # ── GENERAL ──────────────────────────────────────────────────────────────
+    sec("General")
+    numbered(1, "Premiums due monthly in advance by the 1st of each month.")
+    numbered(2, "Main member age 18–65 to join. Maximum entry age 65 (next birthday).")
+    wwfp = (d.get('form_context', 'local') == 'wwfp')
+    if wwfp:
+        numbered(3, "WWF policy for Zimbabwean nationals in any part of the world.")
+    else:
+        numbered(3, "Policy for members residing in South Africa and the SADC region.")
+    numbered(4, "Insured lives limited to those declared on the application form.")
+    numbered(5, ("Extended family cover: residents of SA or Zimbabwe only. "
+                 "Max age 90. Cash amount claimable if deceased is outside SA/ZIM."))
+    numbered(6, "Cohabiting couples qualify for family benefits if declared on form.")
+    numbered(7, ("Max 6 unmarried children under 21. Extended to 26 if full-time student. "
+                 "Physically/mentally disabled dependants covered (no grant, dependent on parents)."))
+
+    # ── WAITING PERIODS ───────────────────────────────────────────────────────
+    sec("Waiting Periods")
+    numbered(1, "Cover commences on the 1st day of the month only.")
+    numbered(2, "Accidental death: immediate cover from first premium.")
+    numbered(3, "Natural causes — immediate family: 3 calendar months.")
+    numbered(4, "Natural causes — extended family: 6 calendar months.")
+    numbered(5, "Suicide: 12 calendar months.")
+    numbered(6, "Newborns enjoy immediate cover if added within 6 months of birth.")
+
+    # ── EXCLUSIONS ────────────────────────────────────────────────────────────
+    sec("Exclusions")
+    item("Nuclear, biological or chemical weapons or radioactive contamination.")
+    item("Sabotage of facilities releasing radioactive or biochemical agents.")
+    item("Involvement of insured lives in unlawful activity.")
+    item("Wilful self-injury or influence of alcohol/narcotics/drugs "
+         "(unless prescribed by registered doctor).")
+
+    # ── PREMIUMS & CLAIMS ─────────────────────────────────────────────────────
+    sec("Premiums & Claims")
+    numbered(1, "Month-to-month basis. No surrender value. Premiums payable lifelong.")
+    numbered(2, "Claims must be submitted within 6 months of the date of death.")
+    numbered(3, "Policy lapses after 3 months of non-payment.")
+    numbered(4, "60-day grace period for arrears before policy is cancelled.")
+    numbered(5, "Foster children excluded unless proof of legal adoption supplied.")
+
+    # ── CHILDREN BENEFIT SCALE ────────────────────────────────────────────────
+    sec("Children Benefit Scale")
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(C_BODY)
-    lines = textwrap.wrap(disc_body, 90)
-    for i, line in enumerate(lines[:3]):
-        c.drawString(MARGIN + 7, disc_bot + disc_h - 27 - i * 11, line)
+    c.drawString(MARGIN, y,
+                 "14+ years: 100%   |   6–13 years: 50%   |   "
+                 "0–5 years: 25%   |   Stillborn (28+ weeks): 25%")
+    y -= 14
+
+    # ── CLAIM DOCUMENTS REQUIRED ─────────────────────────────────────────────
+    sec("Claim Documents Required")
+    numbered(1, "Main member ID/Passport (certified copy).")
+    numbered(2, "Deceased ID/Passport or Registrar General affidavit.")
+    numbered(3, "Certified death certificate or signed burial order.")
+    numbered(4, "SAPS accident report if cause of death is unnatural.")
+    numbered(5, "Doctor’s letter confirming pregnancy months (for stillbirth).")
+    numbered(6, "Notice of death if the person passed away in South Africa.")
+    numbered(7, "Mother’s certified ID/Passport in case of a minor or stillbirth.")
+
+    # ── TERMINATION ───────────────────────────────────────────────────────────
+    sec("Termination")
+    item("1 month written notice of cancellation by either party.")
+    item("Policy lapses on non-payment or withdrawal from the scheme.")
+    item("Cover ceases immediately on policyholder withdrawal.")
 
 
 # ─── PUBLIC ENTRY POINT ──────────────────────────────────────────────────────
@@ -543,12 +694,13 @@ def build_policy_pdf(pdf_path: str, d: Dict[str, Any],
     d must contain all form fields from submit_policy.
     compress=False disables stream compression (useful for text-search in tests).
     """
+    policy_ref = d.get('policy_number', 'DEMO-PREVIEW-MODE')
     page_compression = 1 if compress else 0
     c = rl_canvas.Canvas(pdf_path, pagesize=A4,
                          pageCompression=page_compression)
-    _page1(c, d, stillborn_review)
+    _page1(c, d, stillborn_review, policy_ref)
     c.showPage()
-    _page2(c, d)
+    _page2(c, d, policy_ref)
     c.showPage()
-    _page3(c, d)
+    _page3(c, d, policy_ref)
     c.save()

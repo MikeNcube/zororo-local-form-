@@ -1,10 +1,12 @@
 import json
 import os
+import tempfile
 
 import pytest
 from fastapi.testclient import TestClient
 
 import main
+import pdf_builder
 from datetime import date, timedelta
 
 from validators import (
@@ -664,3 +666,71 @@ def test_easipol_live_false_always_demo_ref(client):
     resp = client.post("/submit-global-policy", data=make_valid_form_data())
     assert resp.status_code == 200
     assert resp.headers.get("x-easipol-policy-number") == "DEMO-PREVIEW-MODE"
+
+
+# ── SPRINT 7C: PDF CONTENT + EMAIL + MODAL ───────────────────────────────────
+
+def _make_pdf_data() -> dict:
+    """Minimal pdf_data dict for direct pdf_builder tests."""
+    return {
+        "title": "Mr", "fname": "Tendai", "lname": "Moyo",
+        "id_doc_type": "Passport", "identity_value": "A12345678",
+        "dob": "1985-06-15", "gender": "Male", "marital_status": "Single",
+        "phone": "0811234567", "email": "tendai@test.co.za",
+        "address": "12 Main St, JHB", "plan_name": "LOCAL_F|169",
+        "local_total": "R 169.00", "product_type": "standard",
+        "form_context": "local", "policy_number": "DEMO-PREVIEW-MODE",
+        "sadac_country_selection": "", "country_of_origin": "",
+        "country_of_residence": "", "pay_method": "PayAt",
+        "fam_fname": [], "fam_lname": [], "fam_relation": [], "fam_dob": [],
+        "ext_fam_fname": [], "ext_fam_lname": [], "ext_fam_relation": [],
+        "ext_fam_dob": [], "ext_fam_cover": [],
+        "ben_fname": "", "ben_lname": "", "ben_rel": "", "ben_phone": "",
+        "bene_deferred": True, "no_client_email": True,
+        "bank_name": "", "account_name": "", "account_num": "",
+        "branch_code": "", "account_type": "", "acc_holder_phone": "",
+        "commencement_date": "", "deduction_date": "",
+        "optin_phone": False, "optin_sms": False, "optin_email": False,
+        "optin_whatsapp": False, "terms_acceptance": True,
+        "needs_analysis_waiver": True, "intermediary_appointment": True,
+        "legal_name_confirm": "Tendai Moyo",
+    }
+
+
+def _pdf_text(d: dict) -> str:
+    p = os.path.join(tempfile.mkdtemp(), "test.pdf")
+    pdf_builder.build_policy_pdf(p, d, compress=False)
+    return open(p, "rb").read().decode("latin-1", errors="ignore")
+
+
+def test_pdf_contains_claim_documents():
+    """PDF page 3 must contain 'Claim Documents' section."""
+    assert "Claim Documents" in _pdf_text(_make_pdf_data())
+
+
+def test_pdf_contains_customer_care_email():
+    """PDF page 3 footer must contain customer-care email."""
+    assert "customer-care@zororo" in _pdf_text(_make_pdf_data())
+
+
+def test_submit_no_email_returns_200(client):
+    """Submission with empty email must return 200 (uses DUMMY_EMAIL)."""
+    data = make_valid_form_data()
+    data["email"] = ""
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 200
+
+
+def test_send_policy_email_no_smtp_user_no_raise(monkeypatch):
+    """send_policy_email must return silently when SMTP_USER is empty."""
+    monkeypatch.setattr(main, "SMTP_USER", "")
+    main.send_policy_email(
+        "test@test.com", b"fake_pdf_bytes", "TEST-REF-123", "Test User"
+    )
+
+
+def test_pre_execute_modal_in_html(client):
+    """GET / must render the pre-execute confirmation modal element."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "preExecuteModal" in resp.text

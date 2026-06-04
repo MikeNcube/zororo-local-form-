@@ -88,12 +88,26 @@
     <main class="max-w-4xl mx-auto px-4 py-8 w-full flex-1 pb-16">
         
         <div id="livePlatformSuccessView" class="hidden text-center space-y-6 py-12 bg-white rounded-2xl card-shadow border p-8">
-            <div class="text-6xl text-amber-500"><i class="fas fa-circle-nodes"></i></div>
-            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Presentation Onboard Completed</h2>
-            
-            <div class="bg-red-50 text-red-800 text-xs font-bold border border-red-200 max-w-xl mx-auto p-4 rounded-xl leading-relaxed text-left space-y-1">
-                <p class="uppercase font-black text-red-700 flex items-center gap-1"><i class="fas fa-circle-exclamation"></i> Presentation Layer Preview Mode Notice:</p>
-                <p>This is a frontend demonstration showing document generation workflows. No data reached Easipol/Rubilink systems. These are layout previews and do not constitute an active issued policy asset.</p>
+            <div class="text-6xl text-teal-500"><i class="fas fa-circle-check"></i></div>
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Application Received</h2>
+
+            <!-- Task 1: Submission summary card -->
+            <div id="submissionSummaryCard" class="hidden text-left max-w-2xl mx-auto w-full border border-teal-200 rounded-2xl overflow-hidden shadow-sm">
+                <div class="bg-teal-600 px-5 py-3"><p class="font-black text-white text-sm">&#10003; Application Received — Policy Summary</p></div>
+                <div class="bg-white p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
+                    <div id="sumCardRef" class="space-y-1"></div>
+                    <div id="sumCardProposer" class="space-y-1"></div>
+                    <div id="sumCardCover" class="space-y-1"></div>
+                    <div id="sumCardPayment" class="space-y-1"></div>
+                    <div class="md:col-span-2 space-y-1"><p class="font-bold text-slate-400 uppercase text-xs mb-1">Dependents</p><div id="sumCardDeps"></div></div>
+                    <div class="space-y-1"><p class="font-bold text-slate-400 uppercase text-xs mb-1">Beneficiary</p><p id="sumCardBen" class="text-slate-600"></p></div>
+                    <div class="space-y-1"><p class="font-bold text-slate-400 uppercase text-xs mb-1">Email Status</p><p id="sumCardEmail" class="text-slate-600"></p></div>
+                </div>
+            </div>
+
+            <div id="noEmailWaSection" class="hidden pt-2">
+                <p class="text-sm text-slate-500 mb-2">&#128203; No email provided — download below or send via WhatsApp</p>
+                <a id="noEmailWaLink" href="#" target="_blank" rel="noopener noreferrer" class="bg-green-500 hover:bg-green-600 text-white font-black px-5 py-2.5 rounded-xl shadow-md inline-flex items-center gap-2 transition-colors text-sm">&#128196; Send my policy PDF via WhatsApp</a>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto pt-2">
@@ -224,7 +238,7 @@
                                 <div><input type="text" id="addrPostal" placeholder="Postal Code (optional)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
                             </div>
                         </div>
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Email Address *</label><input type="email" name="email" required placeholder="proposer@domain.com" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Email Address</label><input type="email" name="email" id="emailInput" placeholder="Optional — PDF sent to your email if provided" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                     </div>
                     <div class="flex justify-end pt-4 border-t"><button type="button" onclick="changeSlideView(2)" class="bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-bold shadow-md">Next Step &rarr;</button></div>
                 </div>
@@ -397,19 +411,7 @@
                     </div>
 
                     <div class="border border-blue-100 rounded-xl overflow-hidden">
-                        <button type="button" id="tcToggleBtn" onclick="document.getElementById('tcSummaryBody').classList.toggle('hidden'); this.querySelector('span').textContent = document.getElementById('tcSummaryBody').classList.contains('hidden') ? '▶' : '▼';" class="w-full text-left px-4 py-3 bg-blue-50 text-xs font-bold text-blue-700 flex items-center gap-2 hover:bg-blue-100 transition"><span>&#9654;</span> View Policy Terms &amp; Conditions Summary</button>
-                        <div id="tcSummaryBody" class="hidden px-4 py-3 text-xs text-gray-700 space-y-1.5 leading-relaxed bg-white">
-                            <p>&bull; Premiums payable monthly in advance on or before the 1st</p>
-                            <p>&bull; 3-month waiting period for immediate family — natural causes</p>
-                            <p>&bull; 6-month waiting period for extended family — natural causes</p>
-                            <p>&bull; 12-month waiting period for suicide</p>
-                            <p>&bull; Accidental death: immediate cover from first premium</p>
-                            <p>&bull; Claims must be submitted within 6 months of date of death</p>
-                            <p>&bull; Policy lapses after 45 days of arrears (60-day grace period)</p>
-                            <p>&bull; Children benefit scale: 0&ndash;5 yrs 25%, 6&ndash;13 yrs 50%, 14+ yrs 100%</p>
-                            <p>&bull; Grandchildren/foster children: legal adoption proof required</p>
-                            <p>&bull; Repatriation available to ZIM, BWA, MWI, MOZ, ZMB, TZA, DRC</p>
-                        </div>
+                        <button type="button" id="tcToggleBtn" onclick="openTcOverlay()" class="w-full text-left px-4 py-3 bg-blue-50 text-xs font-bold text-blue-700 flex items-center gap-2 hover:bg-blue-100 transition"><span>&#9654;</span> View Full Policy Terms &amp; Conditions</button>
                     </div>
 
                     <div class="border border-blue-100 bg-blue-50 rounded-xl p-4">
@@ -443,11 +445,92 @@
 
                     <div class="flex flex-col p-4 bg-slate-50 border rounded-xl"><label class="text-xs font-black text-gray-800 mb-1 uppercase">Digital Signature Full Legal Name Authorization *</label><p class="text-xs text-gray-400 font-medium mb-2">Type your full legal name precisely to serve as your authenticated electronic digital binding signature authorization.</p><input type="text" name="legal_name_confirm" id="signatureDeclarationFieldInput" placeholder="Type legal name to validate contract execution" required class="w-full p-3 font-serif italic text-lg border rounded-xl bg-white outline-none"></div>
 
-                    <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(3)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="submit" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-10 py-4 rounded-xl font-black shadow-lg">Execute Application Submission</button></div>
+                    <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(3)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="button" onclick="showPreExecuteModal()" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-10 py-4 rounded-xl font-black shadow-lg">Execute Application Submission</button></div>
                 </div>
             </div>
         </form>
     </main>
+
+    <!-- T&C Full-page overlay (Task 2) -->
+    <div id="tcOverlay" class="hidden fixed inset-0 z-50 flex flex-col bg-white">
+        <div class="bg-teal-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+            <p class="font-black text-white text-sm">Zororo Phumulani — Full Policy Terms &amp; Conditions</p>
+            <button type="button" onclick="closeTcOverlay()" class="text-white hover:text-teal-200 text-xl font-black leading-none">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto px-6 py-5 text-sm text-slate-700 space-y-4" id="tcOverlayBody">
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">General</h3>
+            <ol class="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+                <li>Premiums due monthly in advance by the 1st of each month.</li>
+                <li>Main member age 18–65 to join. Maximum entry age 65 (next birthday).</li>
+                <li>Insured lives limited to those declared on the application form.</li>
+                <li>Extended family cover: residents of SA or Zimbabwe only. Max age 90. Cash claimable if deceased is outside SA/ZIM.</li>
+                <li>Cohabiting couples qualify for family benefits if declared on form.</li>
+                <li>Max 6 unmarried children under 21. Extended to 26 if full-time student. Physically/mentally disabled dependants covered (no grant, dependent on parents).</li>
+            </ol>
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">Waiting Periods</h3>
+            <ol class="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+                <li>Cover commences on the 1st day of the month only.</li>
+                <li>Accidental death: immediate cover from first premium.</li>
+                <li>Natural causes — immediate family: 3 calendar months.</li>
+                <li>Natural causes — extended family: 6 calendar months.</li>
+                <li>Suicide: 12 calendar months.</li>
+                <li>Newborns enjoy immediate cover if added within 6 months of birth.</li>
+            </ol>
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">Exclusions</h3>
+            <ul class="list-disc list-inside space-y-1 text-xs leading-relaxed">
+                <li>Nuclear, biological or chemical weapons or radioactive contamination.</li>
+                <li>Sabotage of facilities releasing radioactive or biochemical agents.</li>
+                <li>Involvement of insured lives in unlawful activity.</li>
+                <li>Wilful self-injury or influence of alcohol/narcotics/drugs (unless prescribed by registered doctor).</li>
+            </ul>
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">Premiums &amp; Claims</h3>
+            <ol class="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+                <li>Month-to-month basis. No surrender value. Premiums payable lifelong.</li>
+                <li>Claims must be submitted within 6 months of the date of death.</li>
+                <li>Policy lapses after 3 months of non-payment.</li>
+                <li>60-day grace period for arrears before policy is cancelled.</li>
+                <li>Foster children excluded unless proof of legal adoption supplied.</li>
+            </ol>
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">Children Benefit Scale</h3>
+            <p class="text-xs font-bold text-slate-700">14+ years: 100% &nbsp;|&nbsp; 6–13 years: 50% &nbsp;|&nbsp; 0–5 years: 25% &nbsp;|&nbsp; Stillborn (28+ weeks): 25%</p>
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">Claim Documents Required</h3>
+            <ol class="list-decimal list-inside space-y-1 text-xs leading-relaxed">
+                <li>Main member ID/Passport (certified copy).</li>
+                <li>Deceased ID/Passport or Registrar General affidavit.</li>
+                <li>Certified death certificate or signed burial order.</li>
+                <li>SAPS accident report if cause of death is unnatural.</li>
+                <li>Doctor's letter confirming pregnancy months (for stillbirth).</li>
+                <li>Notice of death if the person passed away in South Africa.</li>
+                <li>Mother's certified ID/Passport in case of a minor or stillbirth.</li>
+            </ol>
+            <h3 class="font-black text-slate-800 uppercase text-xs tracking-wide">Termination</h3>
+            <ul class="list-disc list-inside space-y-1 text-xs leading-relaxed">
+                <li>1 month written notice of cancellation by either party.</li>
+                <li>Policy lapses on non-payment or withdrawal from the scheme.</li>
+                <li>Cover ceases immediately on policyholder withdrawal.</li>
+            </ul>
+        </div>
+        <div class="flex-shrink-0 border-t border-slate-200 px-6 py-4 flex flex-col sm:flex-row gap-3">
+            <button type="button" onclick="acceptTcAndClose()" class="bg-teal-600 hover:bg-teal-700 text-white font-black px-6 py-3 rounded-xl flex-1 text-sm transition-colors">&#10003; I have read and understood the Terms &amp; Conditions</button>
+            <button type="button" onclick="closeTcOverlay()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-xl text-sm transition-colors">&times; Close without accepting</button>
+        </div>
+    </div>
+
+    <!-- Pre-execute confirmation modal (Task 3) -->
+    <div id="preExecuteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <h2 class="text-xl font-black text-slate-900">Final Review — Please Confirm</h2>
+            <div class="bg-slate-50 border rounded-xl p-4 space-y-1 text-sm text-slate-700" id="modalSummaryLines"></div>
+            <div class="space-y-2">
+                <div id="modalTcStatus" class="flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2"></div>
+                <div id="modalPopiaStatus" class="flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2"></div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="modalConfirmBtn" onclick="modalConfirmExecute()" class="bg-teal-600 hover:bg-teal-700 text-white font-black px-6 py-3 rounded-xl flex-1 text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">&#10003; Confirm &amp; Execute</button>
+                <button type="button" onclick="closePreExecuteModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-5 py-3 rounded-xl text-sm transition-colors">&larr; Go Back &amp; Edit</button>
+            </div>
+        </div>
+    </div>
 
     <div id="stickyPremiumBar" class="hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t-2 border-teal-600">
         <div class="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
@@ -914,11 +997,11 @@
         }
 
         async function executeGlobalSubmissionWirePipeline(event) {
-            event.preventDefault(); // Prevent default HTML form submission
+            if (event && event.preventDefault) event.preventDefault();
 
             const submissionForm = document.getElementById("submissionWizardForm");
 
-            // POPIA consent frontend guard
+            // POPIA consent frontend guard (only if called directly, modal already checks)
             const popiaEl = document.getElementById("popia_consent");
             const popiaErrEl = document.getElementById("popiaConsentError");
             if (popiaEl && !popiaEl.checked) {
@@ -930,6 +1013,36 @@
             try {
                 // Ensure latest data from current slide is saved before final submission
                 saveFormData();
+
+                // Task 1: Capture submission snapshot BEFORE fetch
+                const gv = function(n) { const el = document.querySelector('[name="' + n + '"]'); return el ? el.value || '' : ''; };
+                const planSel = document.getElementById("productPlan");
+                const planLabel = planSel && planSel.selectedIndex >= 0 ? planSel.options[planSel.selectedIndex].text : '';
+                const planTypeEl = document.querySelector('input[name="plan_type"]:checked');
+                const snapDeps = [];
+                const snapTbody = document.querySelector('#immediateFamilyDataGridTable tbody');
+                if (snapTbody) {
+                    snapTbody.querySelectorAll('tr').forEach(function(row) {
+                        const rel = (row.querySelector('[name="fam_relation[]"]') || {}).value || '';
+                        const fn = (row.querySelector('[name="fam_fname[]"]') || {}).value || '';
+                        const ln = (row.querySelector('[name="fam_lname[]"]') || {}).value || '';
+                        const db = (row.querySelector('[name="fam_dob[]"]') || {}).value || '';
+                        if (fn || ln) snapDeps.push({rel: rel, name: [fn, ln].filter(Boolean).join(' '), dob: db});
+                    });
+                }
+                const submissionSnapshot = {
+                    fullName: [gv('title'), gv('fname'), gv('lname')].filter(Boolean).join(' '),
+                    idType: gv('id_doc_type'), idVal: gv('identity_value'),
+                    dob: gv('dob'), phone: gv('phone'), email: gv('email'),
+                    planType: planTypeEl ? planTypeEl.value : '',
+                    planName: planLabel,
+                    premium: (document.getElementById("premiumPriceDisplayNode") || {}).textContent || '',
+                    commDate: gv('commencement_date'),
+                    payMethod: gv('pay_method'), bankName: gv('bank_name'),
+                    accountNum: gv('account_num'), deductionDate: gv('deduction_date'),
+                    benFname: gv('ben_fname'), benLname: gv('ben_lname'), benRel: gv('ben_rel'),
+                    deps: snapDeps,
+                };
 
                 const formData = new FormData();
                 for (const key in formState) {
@@ -990,6 +1103,85 @@
                 link.href = window.URL.createObjectURL(pdfBlob);
                 link.setAttribute("download", `Zororo_Presentation_Preview_Booklet.pdf`);
                 
+                // Task 1: Populate submission summary card
+                const sc = document.getElementById("submissionSummaryCard");
+                if (sc) {
+                    const isDemo = livePolicyId && (livePolicyId.includes("DEMO") || livePolicyId.includes("FALLBACK"));
+                    const statusHtml = isDemo
+                        ? '<span class="text-amber-600 font-bold">&#9203; Pending — within 1 business day</span>'
+                        : '<span class="text-emerald-600 font-bold">&#10003; Confirmed</span>';
+                    const now = new Date();
+                    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                    const dateStr = now.getDate() + " " + months[now.getMonth()] + " " + now.getFullYear();
+                    const ctxLbl = {'local':'Local South Africa','sadc':'SADC Regional','wwfp':'Worldwide Diaspora'};
+                    const maskedId = submissionSnapshot.idVal.length > 4 ? '****' + submissionSnapshot.idVal.slice(-4) : submissionSnapshot.idVal;
+                    const maskedAcc = submissionSnapshot.accountNum.length > 4 ? '****' + submissionSnapshot.accountNum.slice(-4) : (submissionSnapshot.accountNum || '—');
+                    function row(lbl, val) { return '<p><span class="text-slate-400 font-bold">' + lbl + ':</span> ' + val + '</p>'; }
+                    document.getElementById("sumCardRef").innerHTML =
+                        '<p class="font-bold text-slate-400 uppercase text-xs mb-1">Reference</p>' +
+                        row('Policy Ref', livePolicyId || '—') + row('Billing Ref', liveBillingId || '—') +
+                        row('Date', dateStr) + '<p>Status: ' + statusHtml + '</p>';
+                    document.getElementById("sumCardProposer").innerHTML =
+                        '<p class="font-bold text-slate-400 uppercase text-xs mb-1">Proposer</p>' +
+                        row('Name', submissionSnapshot.fullName || '—') +
+                        row(submissionSnapshot.idType || 'ID', maskedId || '—') +
+                        row('DOB', submissionSnapshot.dob || '—') +
+                        row('Phone', submissionSnapshot.phone || '—') +
+                        row('Context', ctxLbl[currentPathTierMarkerKey] || 'Local South Africa');
+                    document.getElementById("sumCardCover").innerHTML =
+                        '<p class="font-bold text-slate-400 uppercase text-xs mb-1">Cover</p>' +
+                        row('Plan Type', submissionSnapshot.planType || '—') +
+                        row('Plan', submissionSnapshot.planName || '—') +
+                        row('Premium', submissionSnapshot.premium || '—') +
+                        row('Commencement', submissionSnapshot.commDate || 'Not set');
+                    const payLines = ['<p class="font-bold text-slate-400 uppercase text-xs mb-1">Payment</p>', row('Method', submissionSnapshot.payMethod || '—')];
+                    if (submissionSnapshot.payMethod === 'Debit Order') {
+                        if (submissionSnapshot.bankName) payLines.push(row('Bank', submissionSnapshot.bankName));
+                        payLines.push(row('Account', maskedAcc));
+                        if (submissionSnapshot.deductionDate) payLines.push(row('Deduction', submissionSnapshot.deductionDate + ' of month'));
+                    }
+                    document.getElementById("sumCardPayment").innerHTML = payLines.join('');
+                    const depEl = document.getElementById("sumCardDeps");
+                    if (depEl) {
+                        if (!submissionSnapshot.deps.length) { depEl.textContent = 'No dependents declared'; }
+                        else {
+                            const today = new Date();
+                            depEl.innerHTML = submissionSnapshot.deps.map(function(dep) {
+                                let pct = '';
+                                if (dep.dob && dep.rel.toLowerCase() === 'child') {
+                                    const age = calcAgeFromDobString(dep.dob);
+                                    if (age !== null) pct = ' [' + (age < 6 ? '25%' : age < 14 ? '50%' : '100%') + ']';
+                                }
+                                return '<p>' + dep.rel + ' — ' + dep.name + (dep.dob ? ' — ' + dep.dob : '') + pct + '</p>';
+                            }).join('');
+                        }
+                    }
+                    const benEl = document.getElementById("sumCardBen");
+                    if (benEl) benEl.textContent = (submissionSnapshot.benFname || submissionSnapshot.benLname)
+                        ? [submissionSnapshot.benFname, submissionSnapshot.benLname].filter(Boolean).join(' ') + (submissionSnapshot.benRel ? ' (' + submissionSnapshot.benRel + ')' : '')
+                        : 'To be nominated within 30 days via WhatsApp';
+                    // Email status
+                    const emailEl = document.getElementById("sumCardEmail");
+                    const snapEmail = submissionSnapshot.email || '';
+                    if (emailEl) {
+                        if (snapEmail) {
+                            const atIdx = snapEmail.indexOf('@');
+                            const masked = atIdx > 3 ? snapEmail.slice(0,3) + '***' + snapEmail.slice(atIdx) : snapEmail;
+                            emailEl.innerHTML = '<span class="text-emerald-600 font-bold">&#10003; Policy summary emailed to ' + masked + '</span>';
+                        } else {
+                            emailEl.textContent = 'No email provided — download below';
+                            const waSecEl = document.getElementById("noEmailWaSection");
+                            const waLinkEl = document.getElementById("noEmailWaLink");
+                            if (waLinkEl) {
+                                const waMsg = encodeURIComponent('Please send me my policy document. Ref: ' + livePolicyId + '. Name: ' + submissionSnapshot.fullName + '. Phone: ' + submissionSnapshot.phone);
+                                waLinkEl.href = 'https://wa.me/27814194980?text=' + waMsg;
+                            }
+                            if (waSecEl) waSecEl.classList.remove("hidden");
+                        }
+                    }
+                    sc.classList.remove("hidden");
+                }
+
                 document.getElementById("livePlatformSuccessView").classList.remove("hidden");
                 
             } catch (err) {
@@ -997,6 +1189,67 @@
                 alert("🚨 Outbound network transport gateway connection timeout.");
             }
             return false;        }
+
+        // ── TASK 2: T&C Overlay ───────────────────────────────────────────────────
+        function openTcOverlay() {
+            document.getElementById("tcOverlay").classList.remove("hidden");
+            document.body.style.overflow = "hidden";
+        }
+        function closeTcOverlay() {
+            document.getElementById("tcOverlay").classList.add("hidden");
+            document.body.style.overflow = "";
+        }
+        function acceptTcAndClose() {
+            const tc = document.getElementById("termsCheck");
+            if (tc) tc.checked = true;
+            closeTcOverlay();
+        }
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                closeTcOverlay();
+                closePreExecuteModal();
+            }
+        });
+
+        // ── TASK 3: Pre-execute confirmation modal ────────────────────────────────
+        function showPreExecuteModal() {
+            const gv = function(name) { const el = document.querySelector('[name="' + name + '"]'); return el ? el.value || '' : ''; };
+            const fullName = [gv('title'), gv('fname'), gv('lname')].filter(Boolean).join(' ');
+            const planSel = document.getElementById("productPlan");
+            const planName = planSel && planSel.selectedIndex >= 0 ? planSel.options[planSel.selectedIndex].text : '—';
+            const premium = (document.getElementById("premiumPriceDisplayNode") || {}).textContent || '—';
+            const commDate = gv('commencement_date') || 'Not set';
+            const lines = [
+                'Name: ' + (fullName || '—'),
+                'Plan: ' + planName,
+                'Premium: ' + premium,
+                'Commencement: ' + commDate,
+            ];
+            const linesEl = document.getElementById("modalSummaryLines");
+            if (linesEl) linesEl.innerHTML = lines.map(function(l) { return '<p>' + l + '</p>'; }).join('');
+            const tcOk = !!(document.getElementById("termsCheck") || {}).checked;
+            const popiaOk = !!(document.getElementById("popia_consent") || {}).checked;
+            const tcEl = document.getElementById("modalTcStatus");
+            const pEl = document.getElementById("modalPopiaStatus");
+            if (tcEl) {
+                tcEl.className = "flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 " + (tcOk ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600");
+                tcEl.textContent = tcOk ? "✓ Terms & Conditions accepted" : "✗ Please accept T&Cs first";
+            }
+            if (pEl) {
+                pEl.className = "flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 " + (popiaOk ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600");
+                pEl.textContent = popiaOk ? "✓ POPIA consent provided" : "✗ POPIA consent required";
+            }
+            const btn = document.getElementById("modalConfirmBtn");
+            if (btn) btn.disabled = !(tcOk && popiaOk);
+            document.getElementById("preExecuteModal").classList.remove("hidden");
+        }
+        function closePreExecuteModal() {
+            document.getElementById("preExecuteModal").classList.add("hidden");
+        }
+        function modalConfirmExecute() {
+            closePreExecuteModal();
+            executeGlobalSubmissionWirePipeline(null);
+        }
 
         // ── TASK 3: Pre-submit policy summary card ────────────────────────────────
         function runPolicySummaryCard() {

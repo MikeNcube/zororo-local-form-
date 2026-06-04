@@ -7,10 +7,14 @@ import logging
 import os
 import json
 import base64
+import smtplib
 import uvicorn
 import urllib.request
 import urllib.error
 from datetime import datetime
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from uuid import uuid4
 import validators
 import pdf_builder
@@ -39,6 +43,53 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 if not os.path.exists(REGISTRY_FILE):
     with open(REGISTRY_FILE, "w") as f:
         json.dump([], f)
+
+
+# ─── EMAIL CONFIG ─────────────────────────────────────────────────────────────
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASS = os.environ.get("SMTP_PASS", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", "noreply@zororo-phumulani.co.za")
+DUMMY_EMAIL = os.environ.get("DUMMY_EMAIL", "applications@zororo-phumulani.co.za")
+
+
+def send_policy_email(
+    to_address: str, pdf_bytes: bytes,
+    policy_ref: str, applicant_name: str,
+) -> None:
+    """Send policy PDF via SMTP. Silent on any failure or missing config."""
+    if not SMTP_USER:
+        logging.warning("send_policy_email: SMTP_USER not configured — skipping.")
+        return
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = SMTP_FROM
+        msg["To"] = to_address
+        msg["Subject"] = f"Your Zororo Phumulani Policy — Ref: {policy_ref}"
+        body = (
+            f"Dear {applicant_name},\n\n"
+            "Thank you for your application.\n"
+            "Your policy summary is attached.\n\n"
+            f"Policy Reference: {policy_ref}\n\n"
+            "Queries: info@zororo-phumulani.co.za | 011 339 1484\n\n"
+            "Zororo Phumulani Investments (Pty) Ltd\n"
+            "FSP48558 — Underwritten by KGA Life FSP15980"
+        )
+        msg.attach(MIMEText(body, "plain"))
+        attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
+        attachment.add_header(
+            "Content-Disposition", "attachment",
+            filename=f"Zororo_Policy_{policy_ref}.pdf",
+        )
+        msg.attach(attachment)
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_FROM, to_address, msg.as_string())
+        logging.info("Policy email sent: %s ref=%s", to_address, policy_ref)
+    except Exception as exc:
+        logging.warning("send_policy_email failed: %s", exc)
 
 
 # ─── EASIPOL INTEGRATION CONFIG ───────────────────────────────────────────────
@@ -320,7 +371,7 @@ async def submit_policy(
     local_total: str = Form(...),
     pay_method: str = Form(...),
     legal_name_confirm: str = Form(...),
-    email: str = Form(...),
+    email: str = Form(default=""),
     dob: str = Form(...),
     address: str = Form(...),
     marital_status: str = Form(...),
@@ -384,6 +435,10 @@ async def submit_policy(
             ),
         )
 
+    # Email — optional; fall back to DUMMY_EMAIL if not provided
+    no_client_email = not email.strip()
+    effective_email = email.strip() if email.strip() else DUMMY_EMAIL
+
     # Beneficiary deferral flag — all four fields empty means defer
     bene_deferred = not any([
         ben_fname.strip(), ben_lname.strip(),
@@ -392,7 +447,7 @@ async def submit_policy(
 
     # ── VALIDATION LAYER — runs before any writes or PDF generation ─────────
     field_kwargs = dict(
-        fname=fname, lname=lname, phone=phone, email=email,
+        fname=fname, lname=lname, phone=phone, email=effective_email,
         address=address, dob=dob, gender=gender,
         marital_status=marital_status, ben_fname=ben_fname,
         ben_lname=ben_lname, ben_rel=ben_rel, ben_phone=ben_phone,
@@ -427,7 +482,8 @@ async def submit_policy(
         "title": title, "fname": fname, "lname": lname,
         "id_doc_type": id_doc_type, "identity_value": identity_value,
         "dob": dob, "gender": gender, "marital_status": marital_status,
-        "phone": phone, "email": email, "address": address,
+        "phone": phone, "email": effective_email, "address": address,
+        "no_client_email": no_client_email,
         "sadac_country_selection": sadac_country_selection,
         "country_of_origin": country_of_origin,
         "country_of_residence": country_of_residence,
@@ -457,14 +513,25 @@ async def submit_policy(
     }
     pdf_builder.build_policy_pdf(pdf_path, pdf_data, stillborn_review)
 
-    # Trigger Phase 2 Email Flow (Non-blocking background task)
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
 
-    client_body = get_client_email_template(f"{fname} {lname}", policy_number, plan_name, local_total)
+    # SMTP policy email (silent on failure)
+    try:
+        send_policy_email(
+            effective_email, pdf_bytes,
+            policy_number, f"{fname} {lname}".strip(),
+        )
+    except Exception as _e:
+        logging.warning("send_policy_email wrapper failed: %s", _e)
+
+    # HTTP API fallback email (background task)
+    client_body = get_client_email_template(
+        f"{fname} {lname}", policy_number, plan_name, local_total,
+    )
     background_tasks.add_task(
         send_email_worker,
-        email,
+        effective_email,
         "Your Zororo Phumulani Policy Application",
         client_body,
         pdf_bytes,
