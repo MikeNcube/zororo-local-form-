@@ -7,3 +7,5 @@ submitted_policies.json
 .DS_Store
 # Claude Code local settings (contains DB URLs/tokens)
 .claude/settings.json
+
+venv/

@@ -618,9 +618,9 @@
                     }
                 }
             });
-            // Better handling for array inputs (e.g., fam_name[], ext_fam_fname[])
-            const arrayFields = ['fam_relation[]', 'fam_fname[]', 'fam_lname[]', 'fam_dob[]', 
-                                 'ext_fam_relation[]', 'ext_fam_fname[]', 'ext_fam_lname[]', 'ext_fam_dob[]', 'ext_fam_cover[]'];
+            // Better handling for array inputs (e.g., fam_name[], ext_fam_fname)
+            const arrayFields = ['fam_relation', 'fam_fname', 'fam_lname', 'fam_dob', 
+                                 'ext_fam_relation', 'ext_fam_fname', 'ext_fam_lname', 'ext_fam_dob', 'ext_fam_cover'];
             arrayFields.forEach(fieldName => {
                 formState[fieldName] = Array.from(document.querySelectorAll(`[name="${fieldName}"]`)).map(el => el.value);
             });
@@ -856,7 +856,7 @@
                 // Clear existing spouse/child entries from the table
                 const tbody = immediateFamilyTable.querySelector("tbody");
                 Array.from(tbody.children).forEach(row => {
-                    const relationInput = row.querySelector("input[name='fam_relation[]']");
+                    const relationInput = row.querySelector("input[name='fam_relation']");
                     if (relationInput && (relationInput.value === "Spouse" || relationInput.value === "Child")) {
                         row.remove();
                     }
@@ -909,17 +909,17 @@
 
         function injectDependentRowElement(forcedType) {
             const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
-            if (forcedType === "Spouse" && tbody.querySelectorAll("input[name='fam_relation[]'][value='Spouse']").length >= 1) { alert("Only 1 Spouse permitted."); return; }
-            if (forcedType === "Child" && tbody.querySelectorAll("input[name='fam_relation[]'][value='Child']").length >= 6) { alert("Maximum configuration rule: Capped at 6 Children."); return; }
+            if (forcedType === "Spouse" && tbody.querySelectorAll("input[name='fam_relation'][value='Spouse']").length >= 1) { alert("Only 1 Spouse permitted."); return; }
+            if (forcedType === "Child" && tbody.querySelectorAll("input[name='fam_relation'][value='Child']").length >= 6) { alert("Maximum configuration rule: Capped at 6 Children."); return; }
             const planMax = getPlanMaxDeps();
             if (tbody.querySelectorAll('tr').length >= planMax) { showDepLimitError(planMax); return; }
 
             tbody.insertAdjacentHTML("beforeend", `
                 <tr>
-                    <td class="p-2"><input type="text" name="fam_relation[]" value="${forcedType}" readonly class="w-full p-2 border font-bold text-teal-700 bg-slate-50 rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="text" name="fam_fname[]" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="text" name="fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="date" name="fam_dob[]" required class="w-full p-2 border rounded-lg outline-none" onblur="handleDepDobBlur(this)"><p class="dep-dob-hint hidden text-xs mt-0.5"></p></td>
+                    <td class="p-2"><input type="text" name="fam_relation" value="${forcedType}" readonly class="w-full p-2 border font-bold text-teal-700 bg-slate-50 rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="fam_fname" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="fam_lname" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="date" name="fam_dob" required class="w-full p-2 border rounded-lg outline-none" onblur="handleDepDobBlur(this)"><p class="dep-dob-hint hidden text-xs mt-0.5"></p></td>
                     <td class="p-2 text-center"><button type="button" onclick="this.closest('tr').remove(); updateDepLimitUI(); runPlanRecommender();" class="text-red-500 font-bold px-2 text-lg">&times;</button></td>
                 </tr>
             `);
@@ -931,12 +931,12 @@
             const tbody = document.querySelector("#extendedFamilyDataGridTable tbody");
             tbody.insertAdjacentHTML("beforeend", `
                 <tr>
-                    <td class="p-2"><select name="ext_fam_relation[]" required class="w-full p-2 border rounded-lg outline-none"><option value="">-- Select --</option><option value="Parent">Parent</option><option value="Grandparent">Grandparent</option><option value="Aunt/Uncle">Aunt/Uncle</option><option value="Sibling">Sibling</option><option value="Cousin">Cousin</option><option value="Other">Other</option></select></td>
-                    <td class="p-2"><input type="text" name="ext_fam_fname[]" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="text" name="ext_fam_lname[]" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
-                    <td class="p-2"><input type="date" name="ext_fam_dob[]" required class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><select name="ext_fam_relation" required class="w-full p-2 border rounded-lg outline-none"><option value="">-- Select --</option><option value="Parent">Parent</option><option value="Grandparent">Grandparent</option><option value="Aunt/Uncle">Aunt/Uncle</option><option value="Sibling">Sibling</option><option value="Cousin">Cousin</option><option value="Other">Other</option></select></td>
+                    <td class="p-2"><input type="text" name="ext_fam_fname" required placeholder="Name(s)" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="text" name="ext_fam_lname" required placeholder="Surname" class="w-full p-2 border rounded-lg outline-none"></td>
+                    <td class="p-2"><input type="date" name="ext_fam_dob" required class="w-full p-2 border rounded-lg outline-none"></td>
                     <td class="p-2">
-                        <select name="ext_fam_cover[]" required class="w-full p-2 pr-8 border rounded-lg outline-none" onchange="runPremiumPriceCalculatorEngine()">
+                        <select name="ext_fam_cover" required class="w-full p-2 pr-8 border rounded-lg outline-none" onchange="runPremiumPriceCalculatorEngine()">
                             <option value="60">R2,000 (R60)</option>
                             <option value="80">R3,000 (R80)</option>
                             <option value="110">R4,000 (R110)</option>
@@ -960,7 +960,7 @@
             let extendedFamilyPremium = 0;
             const extendedFamilyRows = document.querySelectorAll("#extendedFamilyDataGridTable tbody tr");
             extendedFamilyRows.forEach(row => {
-                const coverSelect = row.querySelector("select[name='ext_fam_cover[]']");
+                const coverSelect = row.querySelector("select[name='ext_fam_cover']");
                 if (coverSelect && coverSelect.value) {
                     extendedFamilyPremium += parseFloat(coverSelect.value);
                 }
@@ -1085,10 +1085,10 @@
                 const snapTbody = document.querySelector('#immediateFamilyDataGridTable tbody');
                 if (snapTbody) {
                     snapTbody.querySelectorAll('tr').forEach(function(row) {
-                        const rel = (row.querySelector('[name="fam_relation[]"]') || {}).value || '';
-                        const fn = (row.querySelector('[name="fam_fname[]"]') || {}).value || '';
-                        const ln = (row.querySelector('[name="fam_lname[]"]') || {}).value || '';
-                        const db = (row.querySelector('[name="fam_dob[]"]') || {}).value || '';
+                        const rel = (row.querySelector('[name="fam_relation"]') || {}).value || '';
+                        const fn = (row.querySelector('[name="fam_fname"]') || {}).value || '';
+                        const ln = (row.querySelector('[name="fam_lname"]') || {}).value || '';
+                        const db = (row.querySelector('[name="fam_dob"]') || {}).value || '';
                         if (fn || ln) snapDeps.push({rel: rel, name: [fn, ln].filter(Boolean).join(' '), dob: db});
                     });
                 }
@@ -1356,10 +1356,10 @@
                     depEl.innerHTML = '';
                     const today = new Date();
                     rows.forEach(function(row) {
-                        const rel = (row.querySelector('[name="fam_relation[]"]') || {}).value || '';
-                        const fn  = (row.querySelector('[name="fam_fname[]"]') || {}).value || '';
-                        const ln  = (row.querySelector('[name="fam_lname[]"]') || {}).value || '';
-                        const db  = (row.querySelector('[name="fam_dob[]"]') || {}).value || '';
+                        const rel = (row.querySelector('[name="fam_relation"]') || {}).value || '';
+                        const fn  = (row.querySelector('[name="fam_fname"]') || {}).value || '';
+                        const ln  = (row.querySelector('[name="fam_lname"]') || {}).value || '';
+                        const db  = (row.querySelector('[name="fam_dob"]') || {}).value || '';
                         let pct = '';
                         if (db && rel.toLowerCase() === 'child') {
                             const age = calcAgeFromDobString(db);
@@ -1416,8 +1416,8 @@
             const today = new Date();
 
             tbody.querySelectorAll("tr").forEach(function(row) {
-                const rel = (row.querySelector('[name="fam_relation[]"]') || {}).value || '';
-                const dobVal = (row.querySelector('[name="fam_dob[]"]') || {}).value || '';
+                const rel = (row.querySelector('[name="fam_relation"]') || {}).value || '';
+                const dobVal = (row.querySelector('[name="fam_dob"]') || {}).value || '';
                 if (rel.toLowerCase() === 'spouse') { hasSpouse = true; return; }
                 if (rel.toLowerCase() === 'child' && dobVal) {
                     const d = new Date(dobVal);
@@ -1627,7 +1627,7 @@
             if (!dobVal) { hintEl.textContent = ''; hintEl.className = "dep-dob-hint hidden text-xs mt-0.5"; return; }
             const age = calcAgeFromDobString(dobVal);
             if (age === null) { hintEl.className = "dep-dob-hint hidden text-xs mt-0.5"; return; }
-            const relInput = row.querySelector('[name="fam_relation[]"]');
+            const relInput = row.querySelector('[name="fam_relation"]');
             const rel = relInput ? relInput.value.toLowerCase() : '';
             let msg = '', color = 'text-emerald-600';
             if (rel === 'spouse') {
@@ -1664,7 +1664,7 @@
         }
 
         function restoreDraft(draft) {
-            const ARRAY_KEYS = new Set(['fam_relation[]','fam_fname[]','fam_lname[]','fam_dob[]','ext_fam_relation[]','ext_fam_fname[]','ext_fam_lname[]','ext_fam_dob[]','ext_fam_cover[]']);
+            const ARRAY_KEYS = new Set(['fam_relation','fam_fname','fam_lname','fam_dob','ext_fam_relation','ext_fam_fname','ext_fam_lname','ext_fam_dob','ext_fam_cover']);
             for (const key in draft) {
                 if (key === '_timestamp' || ARRAY_KEYS.has(key)) continue;
                 const els = document.querySelectorAll('[name="' + key + '"]');
@@ -1677,19 +1677,19 @@
             // Reconstruct immediate family rows
             const immTbody = document.querySelector("#immediateFamilyDataGridTable tbody");
             immTbody.innerHTML = '';
-            const famRel = draft['fam_relation[]'] || [];
-            const famFn  = draft['fam_fname[]']   || [];
-            const famLn  = draft['fam_lname[]']   || [];
-            const famDob = draft['fam_dob[]']     || [];
+            const famRel = draft['fam_relation'] || [];
+            const famFn  = draft['fam_fname']   || [];
+            const famLn  = draft['fam_lname']   || [];
+            const famDob = draft['fam_dob']     || [];
             famRel.forEach(function(rel, i) {
                 if (!rel) return;
                 injectDependentRowElement(rel);
                 const rows = immTbody.querySelectorAll('tr');
                 const row = rows[rows.length - 1];
                 if (!row) return;
-                const fn = row.querySelector('[name="fam_fname[]"]');
-                const ln = row.querySelector('[name="fam_lname[]"]');
-                const db = row.querySelector('[name="fam_dob[]"]');
+                const fn = row.querySelector('[name="fam_fname"]');
+                const ln = row.querySelector('[name="fam_lname"]');
+                const db = row.querySelector('[name="fam_dob"]');
                 if (fn) fn.value = famFn[i] || '';
                 if (ln) ln.value = famLn[i] || '';
                 if (db) db.value = famDob[i] || '';
@@ -1697,22 +1697,22 @@
             // Reconstruct extended family rows
             const extTbody = document.querySelector("#extendedFamilyDataGridTable tbody");
             extTbody.innerHTML = '';
-            const extRel = draft['ext_fam_relation[]'] || [];
-            const extFn  = draft['ext_fam_fname[]']    || [];
-            const extLn  = draft['ext_fam_lname[]']    || [];
-            const extDb  = draft['ext_fam_dob[]']      || [];
-            const extCov = draft['ext_fam_cover[]']    || [];
+            const extRel = draft['ext_fam_relation'] || [];
+            const extFn  = draft['ext_fam_fname']    || [];
+            const extLn  = draft['ext_fam_lname']    || [];
+            const extDb  = draft['ext_fam_dob']      || [];
+            const extCov = draft['ext_fam_cover']    || [];
             extRel.forEach(function(rel, i) {
                 if (!rel) return;
                 injectExtendedFamilyRowElement();
                 const rows = extTbody.querySelectorAll('tr');
                 const row = rows[rows.length - 1];
                 if (!row) return;
-                const rs = row.querySelector('[name="ext_fam_relation[]"]');
-                const fn = row.querySelector('[name="ext_fam_fname[]"]');
-                const ln = row.querySelector('[name="ext_fam_lname[]"]');
-                const db = row.querySelector('[name="ext_fam_dob[]"]');
-                const cv = row.querySelector('[name="ext_fam_cover[]"]');
+                const rs = row.querySelector('[name="ext_fam_relation"]');
+                const fn = row.querySelector('[name="ext_fam_fname"]');
+                const ln = row.querySelector('[name="ext_fam_lname"]');
+                const db = row.querySelector('[name="ext_fam_dob"]');
+                const cv = row.querySelector('[name="ext_fam_cover"]');
                 if (rs) rs.value = rel;
                 if (fn) fn.value = extFn[i] || '';
                 if (ln) ln.value = extLn[i] || '';
@@ -1734,7 +1734,7 @@
                 const rows = extTbody.querySelectorAll('tr');
                 const lastRow = rows[rows.length - 1];
                 if (lastRow) {
-                    const relSel = lastRow.querySelector('[name="ext_fam_relation[]"]');
+                    const relSel = lastRow.querySelector('[name="ext_fam_relation"]');
                     if (relSel) relSel.value = 'Parent';
                 }
             } else {
@@ -1747,7 +1747,7 @@
             const tbody = document.querySelector("#immediateFamilyDataGridTable tbody");
             const spouseTile = document.getElementById("quickTileSpouse");
             if (!tbody || !spouseTile) return;
-            const hasSpouse = tbody.querySelectorAll("input[name='fam_relation[]'][value='Spouse']").length >= 1;
+            const hasSpouse = tbody.querySelectorAll("input[name='fam_relation'][value='Spouse']").length >= 1;
             spouseTile.style.display = hasSpouse ? 'none' : '';
         }
 

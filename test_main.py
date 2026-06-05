@@ -801,6 +801,50 @@ def test_sadac_allows_repeated_phone(client):
     assert second.status_code == 200
 
 
+# ── SPRINT 10: DEPENDENT DATA FLOW ───────────────────────────────────────────
+
+def test_pdf_shows_spouse_dependent():
+    """Spouse in fam arrays must appear in PDF Immediate Dependents table."""
+    d = _make_pdf_data()
+    d["fam_relation"] = ["Spouse"]
+    d["fam_fname"] = ["Grace"]
+    d["fam_lname"] = ["Moyo"]
+    d["fam_dob"] = ["1987-03-15"]
+    text = _pdf_text(d)
+    assert "Spouse" in text
+    assert "Grace" in text
+
+
+def test_pdf_shows_child_dependent():
+    """Child in fam arrays must appear in PDF Immediate Dependents table."""
+    d = _make_pdf_data()
+    d["fam_relation"] = ["Child"]
+    d["fam_fname"] = ["Blessing"]
+    d["fam_lname"] = ["Moyo"]
+    d["fam_dob"] = ["2015-06-10"]
+    text = _pdf_text(d)
+    assert "Child" in text
+    assert "Blessing" in text
+
+
+def test_pdf_shows_extended_family():
+    """Parent in ext_fam arrays must appear in PDF Extended Family table."""
+    d = _make_pdf_data()
+    d["ext_fam_relation"] = ["Parent"]
+    d["ext_fam_fname"] = ["Abel"]
+    d["ext_fam_lname"] = ["Ncube"]
+    d["ext_fam_dob"] = ["1955-01-01"]
+    d["ext_fam_cover"] = ["60"]
+    text = _pdf_text(d)
+    assert "Abel" in text
+
+
+def test_pdf_none_declared_when_no_dependents():
+    """PDF must show 'None declared' when immediate family arrays are empty."""
+    text = _pdf_text(_make_pdf_data())
+    assert "None declared" in text
+
+
 # ── SPRINT 9: PLAN DISPLAY NAME + ADDRESS BLOCK ──────────────────────────────
 
 def test_plan_display_name_wwfp_executive():
