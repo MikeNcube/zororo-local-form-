@@ -58,12 +58,36 @@ def _header(c, page_num: int, policy_ref: str = "") -> None:
     # Navy bar
     c.setFillColor(C_NAVY)
     c.rect(0, PAGE_H - HEADER_H, PAGE_W, HEADER_H, fill=True, stroke=False)
+
+    # White chip + ZP logo on the left (graceful skip if file missing)
+    text_x = MARGIN
+    try:
+        zp_logo = os.path.join("static", "zp_logo.png")
+        if os.path.exists(zp_logo):
+            chip_pad = 8.0
+            chip_x = MARGIN
+            chip_h = HEADER_H - 2 * chip_pad
+            chip_w = 70.0
+            chip_y = PAGE_H - HEADER_H + chip_pad
+            c.setFillColor(C_WHITE)
+            c.roundRect(chip_x, chip_y, chip_w, chip_h, 4,
+                        fill=True, stroke=False)
+            inner = 4.0
+            c.drawImage(
+                zp_logo, chip_x + inner, chip_y + inner,
+                width=chip_w - 2 * inner, height=chip_h - 2 * inner,
+                preserveAspectRatio=True, mask="auto",
+            )
+            text_x = chip_x + chip_w + 12
+    except Exception:
+        text_x = MARGIN
+
     c.setFillColor(C_WHITE)
     c.setFont("Helvetica-Bold", 17)
-    c.drawString(MARGIN, PAGE_H - 24, "ZORORO PHUMULANI")
+    c.drawString(text_x, PAGE_H - 24, "ZORORO PHUMULANI")
     c.setFont("Helvetica", 8)
     c.drawString(
-        MARGIN, PAGE_H - 38,
+        text_x, PAGE_H - 38,
         "Worldwide Funeral Plan  ·  FSP48558  ·  "
         "Underwritten by KGA Life FSP15980",
     )
@@ -160,6 +184,56 @@ def _field_wrap(c, x: float, y: float, label: str, value: str,
     return y - LINE_H * max(1, len(lines)) - 2
 
 
+def plan_display_name(plan_key: str) -> str:
+    """Convert internal plan key (e.g. 'LOCAL_F_R10000|169') to a clean label."""
+    if not plan_key:
+        return "—"
+    key = plan_key.split("|")[0].strip()
+    parts = key.split("_")
+    ctx_map = {
+        "LOCAL": "Local", "SADC": "SADC", "SADAC": "SADC",
+        "WWFP": "Worldwide", "WWF": "Worldwide",
+    }
+    type_map = {"F": "Family", "S": "Single"}
+    try:
+        ctx = ctx_map.get(parts[0].upper())
+        ptype = type_map.get(parts[1].upper()) if len(parts) > 1 else None
+        cover = parts[2] if len(parts) > 2 else ""
+        if (ctx and ptype and cover.upper().startswith("R")
+                and cover[1:].isdigit()):
+            amount = int(cover[1:])
+            return f"{ctx} {ptype} — R{amount:,} Cover"
+    except (IndexError, ValueError):
+        pass
+    return key
+
+
+def _field_email(c, x: float, y: float, label: str, value: str,
+                 col_w: float = 0.0) -> float:
+    """Email row that never truncates: shrink to fit, else wrap. Returns next y."""
+    if col_w == 0.0:
+        col_w = CONTENT_W
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(C_META)
+    c.drawString(x, y, label + ":")
+    val = str(value) if value else "—"
+    c.setFillColor(C_BODY)
+    max_w = col_w - LABEL_W - 4
+    for size in (9.0, 8.0, 7.0, 6.5):
+        if c.stringWidth(val, "Helvetica", size) <= max_w:
+            c.setFont("Helvetica", size)
+            c.drawString(x + LABEL_W, y, val)
+            return y - LINE_H
+    # Still too wide at smallest size — wrap across lines at 7pt
+    c.setFont("Helvetica", 7)
+    avg = c.stringWidth("n", "Helvetica", 7)
+    chars = max(8, int(max_w / avg))
+    lines = textwrap.wrap(val, chars)[:3]
+    for i, ln in enumerate(lines):
+        c.drawString(x + LABEL_W, y - i * 9, ln)
+    return y - LINE_H - 9 * (len(lines) - 1) - 2
+
+
 def _tbl_hdr(c, x: float, y: float,
              cols: List[str], widths: List[float]) -> float:
     tw = sum(widths)
@@ -171,7 +245,8 @@ def _tbl_hdr(c, x: float, y: float,
     for col, w in zip(cols, widths):
         c.drawString(cx + 4, y - 1, col.upper())
         cx += w
-    return y - 16
+    # Extra gap below header band so first data row never overlaps (Bug 4)
+    return y - 24
 
 
 def _tbl_row(c, x: float, y: float, cells: List[str],
@@ -292,8 +367,19 @@ def _page1(c, d: Dict[str, Any], stillborn: bool, policy_ref: str) -> None:
     yl = _field(c, COL_L_X, yl, "ID Type",        d.get('id_doc_type', ''), COL_L_W)
     yl = _field(c, COL_L_X, yl, "ID / Passport",  d.get('identity_value', ''), COL_L_W)
     yl = _field(c, COL_L_X, yl, "Phone",           d.get('phone', ''),   COL_L_W)
-    yl = _field(c, COL_L_X, yl, "Email",           d.get('email', ''),   COL_L_W)
-    yl = _field_wrap(c, COL_L_X, yl, "Address",   d.get('address', ''), COL_L_W, 2)
+    yl = _field_email(c, COL_L_X, yl, "Email",     d.get('email', ''),   COL_L_W)
+    if d.get('street_address', '').strip():
+        yl = _field(c, COL_L_X, yl, "Street Address",
+                    d.get('street_address', ''), COL_L_W)
+        if d.get('area_suburb', '').strip():
+            yl = _field(c, COL_L_X, yl, "Area/Suburb",
+                        d.get('area_suburb', ''), COL_L_W)
+        if d.get('postal_code', '').strip():
+            yl = _field(c, COL_L_X, yl, "Postal Code",
+                        d.get('postal_code', ''), COL_L_W)
+    else:
+        yl = _field_wrap(c, COL_L_X, yl, "Address",
+                         d.get('address', ''), COL_L_W, 2)
 
     ctx = d.get('form_context', 'local')
     if d.get('sadac_country_selection', '').strip():
@@ -304,6 +390,15 @@ def _page1(c, d: Dict[str, Any], stillborn: bool, policy_ref: str) -> None:
     if ctx == 'wwfp':
         yl = _field(c, COL_L_X, yl, "Country Residence",
                     d.get('country_of_residence', ''), COL_L_W)
+    if d.get('nationality', '').strip():
+        yl = _field(c, COL_L_X, yl, "Nationality",
+                    d.get('nationality', ''), COL_L_W)
+    if d.get('whatsapp', '').strip():
+        yl = _field(c, COL_L_X, yl, "WhatsApp",
+                    d.get('whatsapp', ''), COL_L_W)
+    if d.get('alt_phone', '').strip():
+        yl = _field(c, COL_L_X, yl, "Alt Contact",
+                    d.get('alt_phone', ''), COL_L_W)
 
     # ── RIGHT COLUMN: COVER SELECTION ─────────────────────────────────────────
     yr = y
@@ -317,7 +412,7 @@ def _page1(c, d: Dict[str, Any], stillborn: bool, policy_ref: str) -> None:
     yr = _field(c, COL_R_X, yr, "Context",
                 ctx_labels.get(ctx, 'Local South Africa'), COL_R_W)
     yr = _field(c, COL_R_X, yr, "Plan",
-                d.get('plan_name', ''), COL_R_W)
+                plan_display_name(d.get('plan_name', '')), COL_R_W)
     yr = _field(c, COL_R_X, yr, "Monthly Premium",
                 d.get('local_total', ''), COL_R_W)
     yr = _field(c, COL_R_X, yr, "Payment Method",
@@ -437,10 +532,16 @@ def _page2(c, d: Dict[str, Any], policy_ref: str) -> None:
     y = _sec(c, MARGIN, y, "Agent / Connector Details")
     province = (d.get('sadac_country_selection') or
                 d.get('country_of_origin') or "South Africa")
-    y = _field(c, MARGIN, y, "Agent Contact", "0814194980",
-               CONTENT_W)
+    agent_name = d.get('agent_name', '').strip() or "—"
+    agent_phone = d.get('agent_phone', '').strip() or "0814194980"
+    branch_office = d.get('branch_office', '').strip() or "—"
+    manager_name = d.get('manager_name', '').strip() or "—"
+    y = _field(c, MARGIN, y, "Agent / Connector", agent_name, CONTENT_W)
+    y = _field(c, MARGIN, y, "Agent Contact", agent_phone, CONTENT_W)
     y = _field(c, MARGIN, y, "Agent Email",
                "simbarashencube007@gmail.com", CONTENT_W)
+    y = _field(c, MARGIN, y, "Branch Office", branch_office, CONTENT_W)
+    y = _field(c, MARGIN, y, "Manager / Supervisor", manager_name, CONTENT_W)
     y = _field(c, MARGIN, y, "Province / Region", province, CONTENT_W)
     y -= SEC_GAP
 
@@ -491,8 +592,10 @@ def _page2(c, d: Dict[str, Any], policy_ref: str) -> None:
         y = _field(c, MARGIN, y, lbl, val, CONTENT_W)
     y -= SEC_GAP
 
-    # ── SIGNATURE BLOCK ───────────────────────────────────────────────────────
+    # ── SIGNATURE BLOCK (no element overlap, fixed top-to-bottom order) ────────
+    # (a) heading
     y = _sec(c, MARGIN, y, "Electronic Signature — ECT Act No. 25 of 2002")
+    # (b) confirmation paragraph
     c.setFont("Helvetica", 9)
     c.setFillColor(C_META)
     c.drawString(
@@ -506,30 +609,35 @@ def _page2(c, d: Dict[str, Any], policy_ref: str) -> None:
         "This typed legal name constitutes a binding electronic signature "
         "under ECT Act s.13.",
     )
-    y -= 16
+    # (c) blank space before the signature line (>= 18pt)
+    y -= 26
 
-    # Signature line + name
+    # (d) signature line
     c.setStrokeColor(C_BORDER)
     c.setLineWidth(0.8)
     c.line(MARGIN, y, MARGIN + 280, y)
+
+    # (e) label BELOW the line
+    y -= 11
     c.setFont("Helvetica", 8)
     c.setFillColor(C_META)
-    c.drawString(MARGIN, y - 9, "Applicant Signature (Electronic)")
+    c.drawString(MARGIN, y, "Applicant Signature (Electronic)")
 
-    sig = d.get('legal_name_confirm', '')
-    y -= 16
+    # (f) typed name in italic, clearly below the label
+    y -= 20
     c.setFont("Times-Italic", 15)
     c.setFillColor(C_NAVY)
-    c.drawString(MARGIN + 4, y, sig)
-    y -= 14
+    c.drawString(MARGIN + 4, y, d.get('legal_name_confirm', ''))
 
+    # (g) date / time / IP line
+    y -= 16
+    submission_ip = d.get('submission_ip', '') or "Recorded at submission"
     c.setFont("Helvetica", 8.5)
     c.setFillColor(C_META)
     c.drawString(
         MARGIN + 4, y,
         f"Date & Time: {now.strftime('%d %B %Y')}  |  "
-        f"{now.strftime('%H:%M')} SAST   "
-        "|   ECT Act No. 25 of 2002",
+        f"{now.strftime('%H:%M')} SAST  |  IP: {submission_ip}",
     )
 
     # Extended family table (if any + space available)

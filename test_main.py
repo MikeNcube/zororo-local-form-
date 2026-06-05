@@ -330,6 +330,7 @@ def make_valid_form_data():
         "marital_status": "Single",
         "sadac_country_selection": "",
         "country_of_origin": "",
+        "street_address": "12 Main Street",
         "ben_fname": "Rudo",
         "ben_lname": "Moyo",
         "ben_rel": "Spouse",
@@ -339,6 +340,7 @@ def make_valid_form_data():
         "intermediary_appointment": "true",
         "form_context": "local",
         "popia_consent": "true",
+        "branch_office": "Braamfontein (Head Office)",
     }
 
 
@@ -734,3 +736,104 @@ def test_pre_execute_modal_in_html(client):
     resp = client.get("/")
     assert resp.status_code == 200
     assert "preExecuteModal" in resp.text
+
+
+# ── SPRINT 8: CLIENT IP AUDIT + SADAC DUPLICATE ALLOW ────────────────────────
+
+def test_submit_captures_forwarded_ip(client, monkeypatch):
+    """X-Forwarded-For first entry must flow into pdf_data['submission_ip']."""
+    captured = {}
+    orig = main.pdf_builder.build_policy_pdf
+
+    def spy(path, data, *a, **k):
+        captured["ip"] = data.get("submission_ip")
+        return orig(path, data, *a, **k)
+
+    monkeypatch.setattr(main.pdf_builder, "build_policy_pdf", spy)
+    resp = client.post(
+        "/submit-global-policy",
+        data=make_valid_form_data(),
+        headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.1"},
+    )
+    assert resp.status_code == 200
+    assert captured["ip"] == "203.0.113.7"
+
+
+def test_missing_branch_office_returns_422(client):
+    """Empty branch_office must return 422 with the branch prompt."""
+    data = make_valid_form_data()
+    data["branch_office"] = ""
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 422
+    assert "branch office" in resp.json()["detail"].lower()
+
+
+def test_submit_branch_and_manager_flow_to_pdf(client, monkeypatch):
+    """branch_office + manager_name must reach pdf_data on a 200 submission."""
+    captured = {}
+    orig = main.pdf_builder.build_policy_pdf
+
+    def spy(path, data, *a, **k):
+        captured.update(data)
+        return orig(path, data, *a, **k)
+
+    monkeypatch.setattr(main.pdf_builder, "build_policy_pdf", spy)
+    data = make_valid_form_data()
+    data["branch_office"] = "Polokwane"
+    data["manager_name"] = "Grace Dube"
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 200
+    assert captured["branch_office"] == "Polokwane"
+    assert captured["manager_name"] == "Grace Dube"
+
+
+def test_sadac_allows_repeated_phone(client):
+    """SADAC context must accept the same phone number on multiple policies."""
+    data = make_valid_form_data()
+    data["form_context"] = "sadc"
+    data["sadac_country_selection"] = "Zimbabwe"
+    data["country_of_origin"] = "Zimbabwe"
+    data["id_doc_type"] = "Passport"
+    data["identity_value"] = "AB123456"
+    first = client.post("/submit-global-policy", data=data)
+    assert first.status_code == 200
+    second = client.post("/submit-global-policy", data=dict(data))
+    assert second.status_code == 200
+
+
+# ── SPRINT 8 PART 5A: ADDRESS BLOCK + NATIONALITY ────────────────────────────
+
+def test_missing_street_address_returns_422(client):
+    """Empty street_address must return 422 with 'Street address is required.'"""
+    data = make_valid_form_data()
+    data["street_address"] = ""
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 422
+    assert "street address" in resp.json()["detail"].lower()
+
+
+def test_submit_full_address_block_captured(client, monkeypatch):
+    """Full address block fields must reach pdf_data on a 200 submission."""
+    captured = {}
+    orig = main.pdf_builder.build_policy_pdf
+
+    def spy(path, data, *a, **k):
+        captured.update(data)
+        return orig(path, data, *a, **k)
+
+    monkeypatch.setattr(main.pdf_builder, "build_policy_pdf", spy)
+    data = make_valid_form_data()
+    data["street_address"] = "45 Hope Street"
+    data["area_suburb"] = "Hillbrow"
+    data["postal_code"] = "2001"
+    data["nationality"] = "Zimbabwe"
+    data["alt_phone"] = "0791234567"
+    data["whatsapp"] = "0811234567"
+    resp = client.post("/submit-global-policy", data=data)
+    assert resp.status_code == 200
+    assert captured["street_address"] == "45 Hope Street"
+    assert captured["area_suburb"] == "Hillbrow"
+    assert captured["postal_code"] == "2001"
+    assert captured["nationality"] == "Zimbabwe"
+    assert captured["alt_phone"] == "0791234567"
+    assert captured["whatsapp"] == "0811234567"

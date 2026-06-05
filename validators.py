@@ -73,6 +73,20 @@ def canonicalize_sa_phone(phone: str) -> str:
     return clean
 
 
+def validate_branch_office(branch_office: str) -> Optional[str]:
+    """Return error string if branch office is not selected, else None."""
+    if not branch_office.strip():
+        return "Please select a branch office."
+    return None
+
+
+def validate_street_address(street_address: str) -> Optional[str]:
+    """Return error string if street_address is empty, else None."""
+    if not street_address.strip():
+        return "Street address is required."
+    return None
+
+
 def validate_phone(phone: str, form_context: str = "local") -> Optional[str]:
     """Return error string if phone is not valid for the given context, else None."""
     clean = phone.strip().replace(' ', '').replace('-', '')

@@ -409,6 +409,16 @@ async def submit_policy(
     tsf_doc: UploadFile = File(default=None),
     form_context: str = Form(default="local"),
     popia_consent: str = Form(default=""),
+    agent_name: str = Form(default=""),
+    agent_phone: str = Form(default=""),
+    branch_office: str = Form(default=""),
+    manager_name: str = Form(default=""),
+    street_address: str = Form(default=""),
+    area_suburb: str = Form(default=""),
+    postal_code: str = Form(default=""),
+    alt_phone: str = Form(default=""),
+    whatsapp: str = Form(default=""),
+    nationality: str = Form(default=""),
 ):
     # POPIA consent gate — must be explicitly "true" (POPIA Act 4 of 2013)
     if popia_consent.strip().lower() != "true":
@@ -417,8 +427,24 @@ async def submit_policy(
             detail="POPIA consent is required to submit your application.",
         )
 
+    # Branch office is required (FSCA intermediary attribution)
+    branch_err = validators.validate_branch_office(branch_office)
+    if branch_err:
+        raise HTTPException(status_code=422, detail=branch_err)
+
+    # Street address is required
+    street_err = validators.validate_street_address(street_address)
+    if street_err:
+        raise HTTPException(status_code=422, detail=street_err)
+
+    # Client IP for audit trail (Railway proxy: x-forwarded-for holds real IP)
+    fwd = request.headers.get("x-forwarded-for", "")
+    client_ip = fwd.split(",")[0].strip() if fwd else (
+        request.client.host if request.client else "Unknown")
+
+    # Duplicate phone guard — skipped for SADAC (same number may repeat)
     clean_phone = validators.canonicalize_sa_phone(phone)
-    if clean_phone in load_registered_phone_numbers():
+    if form_context != "sadc" and clean_phone in load_registered_phone_numbers():
         raise HTTPException(
             status_code=400,
             detail="Guardrail Failure: A policy has already been registered with this mobile phone number.",
@@ -484,6 +510,9 @@ async def submit_policy(
         "dob": dob, "gender": gender, "marital_status": marital_status,
         "phone": phone, "email": effective_email, "address": address,
         "no_client_email": no_client_email,
+        "submission_ip": client_ip,
+        "agent_name": agent_name, "agent_phone": agent_phone,
+        "branch_office": branch_office, "manager_name": manager_name,
         "sadac_country_selection": sadac_country_selection,
         "country_of_origin": country_of_origin,
         "country_of_residence": country_of_residence,
@@ -510,6 +539,12 @@ async def submit_policy(
         "intermediary_appointment": intermediary_appointment,
         "legal_name_confirm": legal_name_confirm,
         "bene_deferred": bene_deferred,
+        "street_address": street_address,
+        "area_suburb": area_suburb,
+        "postal_code": postal_code,
+        "alt_phone": alt_phone,
+        "whatsapp": whatsapp,
+        "nationality": nationality,
     }
     pdf_builder.build_policy_pdf(pdf_path, pdf_data, stillborn_review)
 

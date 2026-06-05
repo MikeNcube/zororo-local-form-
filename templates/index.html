@@ -148,8 +148,42 @@
             <div class="slide active" data-slide="1">
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
                     <div class="flex items-center gap-3 border-b pb-4"><div class="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600 text-lg"><i class="fas fa-user"></i></div><div><h2 class="text-xl font-bold text-gray-900">Step 1: Proposer Details</h2><p class="text-sm text-gray-500">Main member demographic info panel</p></div></div>
+
+                    <div class="bg-slate-50 border rounded-xl p-4">
+                        <h3 class="text-xs font-black text-gray-700 uppercase tracking-wide mb-3"><i class="fas fa-user-tie text-teal-500"></i> Agent / Connector &amp; Branch</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Agent / Connector Name</label><input type="text" name="agent_name" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Agent Phone</label><input type="tel" name="agent_phone" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none"></div>
+                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Branch Office *</label><select name="branch_office" required class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
+                                <option value="">Select branch office</option>
+                                <option value="Braamfontein (Head Office)">Braamfontein (Head Office)</option>
+                                <option value="Pretoria">Pretoria</option>
+                                <option value="Randburg">Randburg</option>
+                                <option value="Germiston">Germiston</option>
+                                <option value="Kempton Park">Kempton Park</option>
+                                <option value="Springs">Springs</option>
+                                <option value="Cape Town Central">Cape Town Central</option>
+                                <option value="Bellville">Bellville</option>
+                                <option value="Paarl">Paarl</option>
+                                <option value="Wynberg">Wynberg</option>
+                                <option value="Vredenburg">Vredenburg</option>
+                                <option value="Durban">Durban</option>
+                                <option value="East London">East London</option>
+                                <option value="Gqeberha (Port Elizabeth)">Gqeberha (Port Elizabeth)</option>
+                                <option value="Polokwane">Polokwane</option>
+                                <option value="Musina">Musina</option>
+                                <option value="Lephalale">Lephalale</option>
+                                <option value="Nelspruit (Mbombela)">Nelspruit (Mbombela)</option>
+                                <option value="Witbank (Emalahleni)">Witbank (Emalahleni)</option>
+                                <option value="Middelburg">Middelburg</option>
+                                <option value="Rustenburg">Rustenburg</option>
+                            </select></div>
+                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Manager / Supervisor Name</label><input type="text" name="manager_name" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none"></div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Title *</label><select name="title" required onchange="handleTitleChange()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="Mr">Mr</option><option value="Mrs">Mrs</option><option value="Ms">Ms</option></select></div>
+                        <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Title *</label><select name="title" required onchange="handleTitleChange()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="">Select title</option><option value="Mr">Mr</option><option value="Mrs">Mrs</option><option value="Miss">Miss</option><option value="Ms">Ms</option><option value="Dr">Dr</option><option value="Prof">Prof</option><option value="Rev">Rev</option><option value="Adv">Adv</option></select></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">First Name(s) *</label><input type="text" name="fname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Surname *</label><input type="text" name="lname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">ID Type *</label><select id="idDocType" name="id_doc_type" onchange="toggleIdInputLabels()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="ID Number">SA ID Number</option><option value="Passport">Passport</option><option value="ZIM National ID" id="optZimNationalId" style="display:none">Zimbabwe National ID</option></select></div>
@@ -165,45 +199,30 @@
                         </select></div>
                         <div id="countryOfResidenceField" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Residence *</label>
-                            <select name="country_of_residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" onchange="runPremiumPriceCalculatorEngine()">
-                                <option value="">-- Select Country --</option>
-                                <optgroup label="Southern Africa (SADC)">
-                                    <option value="South Africa">South Africa</option>
-                                    <option value="Zimbabwe">Zimbabwe</option>
-                                    <option value="Zambia">Zambia</option>
-                                    <option value="Botswana">Botswana</option>
-                                    <option value="Mozambique">Mozambique</option>
-                                    <option value="Malawi">Malawi</option>
-                                    <option value="Namibia">Namibia</option>
-                                    <option value="Lesotho">Lesotho</option>
-                                    <option value="Eswatini">Eswatini</option>
-                                    <option value="Tanzania">Tanzania</option>
-                                    <option value="Mauritius">Mauritius</option>
-                                    <option value="Madagascar">Madagascar</option>
-                                    <option value="DR Congo">DR Congo</option>
-                                    <option value="Angola">Angola</option>
-                                    <option value="Seychelles">Seychelles</option>
-                                </optgroup>
-                                <optgroup label="Europe">
-                                    <option value="United Kingdom">United Kingdom</option>
-                                    <option value="Ireland">Ireland</option>
-                                    <option value="Germany">Germany</option>
-                                    <option value="France">France</option>
-                                    <option value="Netherlands">Netherlands</option>
-                                    <option value="Belgium">Belgium</option>
-                                    <option value="Sweden">Sweden</option>
-                                    <option value="Norway">Norway</option>
-                                </optgroup>
-                                <optgroup label="Oceania">
-                                    <option value="Australia">Australia</option>
-                                    <option value="New Zealand">New Zealand</option>
-                                </optgroup>
-                                <optgroup label="Americas">
-                                    <option value="United States">United States</option>
-                                    <option value="Canada">Canada</option>
-                                </optgroup>
+                            <input type="text" name="country_of_residence" placeholder="Enter your country of residence" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="runPremiumPriceCalculatorEngine()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Nationality</label>
+                            <select name="nationality" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none">
+                                <option value="Zimbabwe" selected>Zimbabwe</option>
+                                <option value="South Africa">South Africa</option>
+                                <option value="Angola">Angola</option>
+                                <option value="Botswana">Botswana</option>
+                                <option value="Comoros">Comoros</option>
+                                <option value="DR Congo">DR Congo</option>
+                                <option value="Eswatini">Eswatini</option>
+                                <option value="Lesotho">Lesotho</option>
+                                <option value="Madagascar">Madagascar</option>
+                                <option value="Malawi">Malawi</option>
+                                <option value="Mauritius">Mauritius</option>
+                                <option value="Mozambique">Mozambique</option>
+                                <option value="Namibia">Namibia</option>
+                                <option value="Seychelles">Seychelles</option>
+                                <option value="Tanzania">Tanzania</option>
+                                <option value="Zambia">Zambia</option>
                             </select>
-                        </div>                        <div id="localCountryOriginFieldWrapper" class="hidden">
+                        </div>
+                        <div id="localCountryOriginFieldWrapper" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Country of Origin *</label>
                             <select id="localCountryOriginSelect" name="local_country_of_origin" class="w-full px-4 py-2.5 pr-8 border rounded-lg bg-gray-50 outline-none">
                                 <option value="">-- Select Country of Origin --</option>
@@ -230,12 +249,14 @@
                             <label class="block text-xs font-bold text-gray-700 mb-2 uppercase">Residential Address *</label>
                             <input type="hidden" name="address" id="addressHidden">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="md:col-span-2"><input type="text" id="addrStreet" placeholder="Street Address *" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
-                                <div id="addrSuburbWrap"><input type="text" id="addrSuburb" placeholder="Suburb (optional)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div class="md:col-span-2"><input type="text" id="addrStreet" name="street_address" placeholder="Street Address *" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div id="addrSuburbWrap"><input type="text" id="addrSuburb" name="area_suburb" placeholder="Area / Suburb (optional)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
                                 <div><input type="text" id="addrCity" placeholder="City *" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
                                 <div id="addrSAProvinceWrap"><select id="addrSAProvince" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" onchange="serializeAddress()"><option value="">Province (optional)</option><option value="Eastern Cape">Eastern Cape</option><option value="Free State">Free State</option><option value="Gauteng">Gauteng</option><option value="KwaZulu-Natal">KwaZulu-Natal</option><option value="Limpopo">Limpopo</option><option value="Mpumalanga">Mpumalanga</option><option value="Northern Cape">Northern Cape</option><option value="North West">North West</option><option value="Western Cape">Western Cape</option></select></div>
                                 <div id="addrCountryWrap" class="hidden"><input type="text" id="addrCountry" placeholder="Country" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
-                                <div><input type="text" id="addrPostal" placeholder="Postal Code (optional)" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="serializeAddress()"></div>
+                                <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Postal Code</label><input type="text" id="addrPostal" name="postal_code" inputmode="numeric" maxlength="4" placeholder="e.g. 2001" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none" oninput="this.value=this.value.replace(/[^0-9]/g,''); serializeAddress()"><p class="text-xs text-slate-400 mt-1">Optional — please provide if available</p></div>
+                                <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Alternative Contact Number</label><input type="tel" name="alt_phone" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
+                                <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">WhatsApp Number</label><input type="tel" name="whatsapp" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
                             </div>
                         </div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Email Address</label><input type="email" name="email" id="emailInput" placeholder="Optional — PDF sent to your email if provided" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
@@ -257,7 +278,10 @@
                                 <input type="radio" name="product_type" value="wwfp" class="form-radio h-4 w-4 text-teal-600" onchange="handleProductTypeChange()">
                                 <span class="ml-2 text-sm font-medium text-gray-700">World Wide Funeral Plan</span>
                             </label>
-                        </div>
+                        </div></div>
+                    <div id="wwfpProductLockLabel" class="hidden bg-gray-50 border p-4 rounded-xl">
+                        <label class="text-xs font-black text-gray-700 uppercase block mb-1">Product Type</label>
+                        <p class="text-sm font-bold text-teal-700">Worldwide Funeral Plan</p>
                     </div>
                     <div class="flex flex-col bg-gray-50 border p-4 rounded-xl gap-3">
                         <label class="text-xs font-black text-gray-700 uppercase">Select Plan Type *</label>
@@ -744,9 +768,11 @@
             localCountryOriginSelect.removeAttribute("required");
             localCountryOriginSelect.value = "";
 
-            if (productTypeToggle) { // Always show for Local and WWFP initially
+            const wwfpProductLockLabel = document.getElementById("wwfpProductLockLabel");
+            if (productTypeToggle) { // Always show for Local initially
                 productTypeToggle.classList.remove("hidden");
             }
+            if (wwfpProductLockLabel) wwfpProductLockLabel.classList.add("hidden");
 
             if (currentPathTierMarkerKey === 'sadac') {
                 sadacCountrySelectionFields.classList.remove("hidden");
@@ -758,6 +784,13 @@
             } else if (currentPathTierMarkerKey === 'local') {
                 localCountryOriginFieldWrapper.classList.add("hidden");
                 localCountryOriginSelect.removeAttribute("required");
+            } else if (currentPathTierMarkerKey === 'wwfp') {
+                // Lock product to Worldwide Funeral Plan: hide toggle, show label
+                const wwfpRadio = document.querySelector('input[name="product_type"][value="wwfp"]');
+                if (wwfpRadio) wwfpRadio.checked = true;
+                if (productTypeToggle) productTypeToggle.classList.add("hidden");
+                if (wwfpProductLockLabel) wwfpProductLockLabel.classList.remove("hidden");
+                handleProductTypeChange();
             }
             // WWFP: countryOfResidenceField is handled by handleProductTypeChange
 
