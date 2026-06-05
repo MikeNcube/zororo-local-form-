@@ -93,7 +93,8 @@ def _header(c, page_num: int, policy_ref: str = "") -> None:
     )
     if policy_ref:
         c.setFont("Helvetica-Bold", 8)
-        c.drawRightString(PAGE_W - MARGIN, PAGE_H - 24, policy_ref)
+        # Mid-point of the two title lines (PAGE_H-24 and PAGE_H-38) = PAGE_H-31
+        c.drawRightString(PAGE_W - MARGIN, PAGE_H - 31, policy_ref)
     try:
         logo = os.path.join("static", "logo.png")
         if os.path.exists(logo):
@@ -259,9 +260,11 @@ def _tbl_hdr(c, x: float, y: float,
     c.setFont("Helvetica-Bold", 8)
     cx = x
     for col, w in zip(cols, widths):
-        c.drawString(cx + 4, y - 1, col.upper())
+        # Band spans y-16 to y+2 (18pt). Text at y-5 keeps 8pt caps (top ~y-0.5)
+        # fully inside the band top (y+2) with no bleed above.
+        c.drawString(cx + 4, y - 5, col.upper())
         cx += w
-    # Extra gap below header band so first data row never overlaps (Bug 4)
+    # 10pt clearance: band bottom at y-16, first row shade top at (y-28)+2=y-26
     return y - 28
 
 
@@ -479,6 +482,7 @@ def _page1(c, d: Dict[str, Any], stillborn: bool, policy_ref: str) -> None:
 
     cols = ["Relationship", "Full Name", "Date of Birth"]
     widths = [115.0, 245.0, 155.0]
+    tab_y -= 2  # extra breathing room between section underline and header band
     tab_y = _tbl_hdr(c, MARGIN, tab_y, cols, widths)
 
     max_rows = max(1, int((tab_y - CONTENT_BOT) / 14) - 1)
@@ -669,6 +673,7 @@ def _page2(c, d: Dict[str, Any], policy_ref: str) -> None:
     if ext_entries and y > CONTENT_BOT + 70:
         y -= SEC_GAP
         y = _sec(c, MARGIN, y, "Extended Family Cover Members")
+        y -= 2  # extra breathing room between section underline and header band
         ew = [110.0, 170.0, 105.0, 130.0]
         y = _tbl_hdr(c, MARGIN, y,
                      ["Relationship", "Full Name", "DOB", "Cover Amount"], ew)
