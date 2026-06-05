@@ -195,17 +195,33 @@ def plan_display_name(plan_key: str) -> str:
         "WWFP": "Worldwide", "WWF": "Worldwide",
     }
     type_map = {"F": "Family", "S": "Single"}
+    tier_map = {
+        "EXECUTIVE": "Executive", "PREMIUM": "Premium",
+        "STANDARD": "Standard", "BASIC": "Basic",
+    }
     try:
         ctx = ctx_map.get(parts[0].upper())
-        ptype = type_map.get(parts[1].upper()) if len(parts) > 1 else None
-        cover = parts[2] if len(parts) > 2 else ""
-        if (ctx and ptype and cover.upper().startswith("R")
-                and cover[1:].isdigit()):
-            amount = int(cover[1:])
-            return f"{ctx} {ptype} — R{amount:,} Cover"
+        if not ctx:
+            return key.replace("_", " ")
+        if len(parts) >= 3:
+            # CTX_TYPE_COVER: e.g. LOCAL_F_R10000
+            ftype = type_map.get(parts[1].upper())
+            cover = parts[2]
+            if ftype and cover.upper().startswith("R") and cover[1:].isdigit():
+                amount = int(cover[1:])
+                return f"{ctx} {ftype} — R{amount:,} Cover"
+            # CTX_TIER_TYPE: e.g. WWFP_EXECUTIVE_F
+            tier = tier_map.get(parts[1].upper())
+            ptype = type_map.get(parts[2].upper())
+            if tier and ptype:
+                return f"{ctx} {tier} — {ptype}"
+        if len(parts) == 2:
+            ftype = type_map.get(parts[1].upper())
+            if ftype:
+                return f"{ctx} {ftype}"
     except (IndexError, ValueError):
         pass
-    return key
+    return key.replace("_", " ")
 
 
 def _field_email(c, x: float, y: float, label: str, value: str,
@@ -246,7 +262,7 @@ def _tbl_hdr(c, x: float, y: float,
         c.drawString(cx + 4, y - 1, col.upper())
         cx += w
     # Extra gap below header band so first data row never overlaps (Bug 4)
-    return y - 24
+    return y - 28
 
 
 def _tbl_row(c, x: float, y: float, cells: List[str],

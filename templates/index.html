@@ -149,39 +149,6 @@
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
                     <div class="flex items-center gap-3 border-b pb-4"><div class="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600 text-lg"><i class="fas fa-user"></i></div><div><h2 class="text-xl font-bold text-gray-900">Step 1: Proposer Details</h2><p class="text-sm text-gray-500">Main member demographic info panel</p></div></div>
 
-                    <div class="bg-slate-50 border rounded-xl p-4">
-                        <h3 class="text-xs font-black text-gray-700 uppercase tracking-wide mb-3"><i class="fas fa-user-tie text-teal-500"></i> Agent / Connector &amp; Branch</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Agent / Connector Name</label><input type="text" name="agent_name" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Agent Phone</label><input type="tel" name="agent_phone" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none"></div>
-                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Branch Office *</label><select name="branch_office" required class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
-                                <option value="">Select branch office</option>
-                                <option value="Braamfontein (Head Office)">Braamfontein (Head Office)</option>
-                                <option value="Pretoria">Pretoria</option>
-                                <option value="Randburg">Randburg</option>
-                                <option value="Germiston">Germiston</option>
-                                <option value="Kempton Park">Kempton Park</option>
-                                <option value="Springs">Springs</option>
-                                <option value="Cape Town Central">Cape Town Central</option>
-                                <option value="Bellville">Bellville</option>
-                                <option value="Paarl">Paarl</option>
-                                <option value="Wynberg">Wynberg</option>
-                                <option value="Vredenburg">Vredenburg</option>
-                                <option value="Durban">Durban</option>
-                                <option value="East London">East London</option>
-                                <option value="Gqeberha (Port Elizabeth)">Gqeberha (Port Elizabeth)</option>
-                                <option value="Polokwane">Polokwane</option>
-                                <option value="Musina">Musina</option>
-                                <option value="Lephalale">Lephalale</option>
-                                <option value="Nelspruit (Mbombela)">Nelspruit (Mbombela)</option>
-                                <option value="Witbank (Emalahleni)">Witbank (Emalahleni)</option>
-                                <option value="Middelburg">Middelburg</option>
-                                <option value="Rustenburg">Rustenburg</option>
-                            </select></div>
-                            <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Manager / Supervisor Name</label><input type="text" name="manager_name" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none"></div>
-                        </div>
-                    </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Title *</label><select name="title" required onchange="handleTitleChange()" class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"><option value="">Select title</option><option value="Mr">Mr</option><option value="Mrs">Mrs</option><option value="Miss">Miss</option><option value="Ms">Ms</option><option value="Dr">Dr</option><option value="Prof">Prof</option><option value="Rev">Rev</option><option value="Adv">Adv</option></select></div>
                         <div><label class="block text-xs font-bold text-gray-700 mb-1 uppercase">First Name(s) *</label><input type="text" name="fname" required class="w-full px-4 py-2.5 border rounded-lg bg-gray-50 outline-none"></div>
@@ -365,7 +332,23 @@
 
             <div class="slide" data-slide="3">
                 <div class="bg-white rounded-2xl card-shadow p-6 md:p-8 space-y-6">
-                    <div class="flex flex-col"><label class="text-xs font-bold text-gray-600 mb-1.5 uppercase">Premium Settlement Channel *</label><select name="pay_method" id="paymentMethodSelector" onchange="toggleDebitFieldsViewBox()" class="p-3.5 font-bold border rounded-xl bg-gray-50 outline-none"><option value="PayAt">Pay@ Retail Terminal Network (Cash Box/Boxer)</option><option value="Debit Order">Debit Order Authorization Mandate</option></select></div>
+                    <div class="flex flex-col">
+                        <label class="text-xs font-bold text-gray-600 mb-1.5 uppercase">Premium Settlement Channel *</label>
+                        <select name="pay_method" id="paymentMethodSelector" onchange="toggleDebitFieldsViewBox()" class="p-3.5 font-bold border rounded-xl bg-gray-50 outline-none">
+                            <option value="PayAt">Pay@ Retail Terminal Network (Cash Box/Boxer)</option>
+                            <option value="Debit Order">Debit Order Authorization Mandate</option>
+                        </select>
+                        <div id="paymentLinksLocal" class="hidden mt-3 flex flex-wrap gap-2">
+                            <a href="https://pay.zororophumulani.co.za/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-4 py-2 rounded-lg hover:bg-teal-100 transition">&#128279; Pay Online</a>
+                        </div>
+                        <div id="paymentLinksSadc" class="hidden mt-3 flex flex-wrap gap-2">
+                            <a href="https://pay.zororophumulani.co.za/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-4 py-2 rounded-lg hover:bg-teal-100 transition">&#128279; Pay Online (Local)</a>
+                            <a href="https://zororophumulani.co.za/paynow.php" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-100 transition">&#128279; Pay Online (Diaspora)</a>
+                        </div>
+                        <div id="paymentLinksWwfp" class="hidden mt-3 flex flex-wrap gap-2">
+                            <a href="https://zororophumulani.co.za/paynow.php" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg hover:bg-blue-100 transition">&#128279; Pay Online</a>
+                        </div>
+                    </div>
                     
                     <div id="easipolBankingBanner" class="hidden mb-2 border border-amber-200 bg-amber-50 rounded-xl p-4">
                         <p class="text-sm font-bold text-amber-800 flex items-center gap-2"><i class="fas fa-lock text-amber-500"></i> Secure banking capture via Easipol's encrypted portal</p>
@@ -468,6 +451,52 @@
                     <p class="text-xs text-slate-500 italic border border-slate-200 rounded-lg px-4 py-2 bg-slate-50">Documents required for main member only. Dependents are covered under the main member's policy.</p>
 
                     <div class="flex flex-col p-4 bg-slate-50 border rounded-xl"><label class="text-xs font-black text-gray-800 mb-1 uppercase">Digital Signature Full Legal Name Authorization *</label><p class="text-xs text-gray-400 font-medium mb-2">Type your full legal name precisely to serve as your authenticated electronic digital binding signature authorization.</p><input type="text" name="legal_name_confirm" id="signatureDeclarationFieldInput" placeholder="Type legal name to validate contract execution" required class="w-full p-3 font-serif italic text-lg border rounded-xl bg-white outline-none"></div>
+
+                    <div class="bg-slate-50 border rounded-xl p-4">
+                        <h3 class="text-xs font-black text-gray-700 uppercase tracking-wide mb-3"><i class="fas fa-user-tie text-teal-500"></i> Agent / Connector &amp; Branch</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Agent / Connector Name</label>
+                                <input type="text" name="agent_name" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Agent Phone</label>
+                                <input type="tel" name="agent_phone" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Branch Office *</label>
+                                <select name="branch_office" required class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
+                                    <option value="">Select branch office</option>
+                                    <option value="Braamfontein (Head Office)">Braamfontein (Head Office)</option>
+                                    <option value="Pretoria">Pretoria</option>
+                                    <option value="Randburg">Randburg</option>
+                                    <option value="Germiston">Germiston</option>
+                                    <option value="Kempton Park">Kempton Park</option>
+                                    <option value="Springs">Springs</option>
+                                    <option value="Cape Town Central">Cape Town Central</option>
+                                    <option value="Bellville">Bellville</option>
+                                    <option value="Paarl">Paarl</option>
+                                    <option value="Wynberg">Wynberg</option>
+                                    <option value="Vredenburg">Vredenburg</option>
+                                    <option value="Durban">Durban</option>
+                                    <option value="East London">East London</option>
+                                    <option value="Gqeberha (Port Elizabeth)">Gqeberha (Port Elizabeth)</option>
+                                    <option value="Polokwane">Polokwane</option>
+                                    <option value="Musina">Musina</option>
+                                    <option value="Lephalale">Lephalale</option>
+                                    <option value="Nelspruit (Mbombela)">Nelspruit (Mbombela)</option>
+                                    <option value="Witbank (Emalahleni)">Witbank (Emalahleni)</option>
+                                    <option value="Middelburg">Middelburg</option>
+                                    <option value="Rustenburg">Rustenburg</option>
+                                    <option value="Gauteng (GPCC)">Gauteng (GPCC)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1 uppercase">Manager / Supervisor Name</label>
+                                <input type="text" name="manager_name" placeholder="Optional" class="w-full px-4 py-2.5 border rounded-lg bg-white outline-none">
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="flex justify-between pt-4 border-t"><button type="button" onclick="changeSlideView(3)" class="bg-gray-100 border text-gray-600 px-6 py-3 rounded-xl font-bold">Back</button><button type="button" onclick="showPreExecuteModal()" class="bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-10 py-4 rounded-xl font-black shadow-lg">Execute Application Submission</button></div>
                 </div>
@@ -1442,6 +1471,23 @@
             if (hidden) hidden.value = parts.join(', ');
         }
 
+        function updatePaymentLinks() {
+            const ctxMap = {
+                'local': 'paymentLinksLocal',
+                'sadc': 'paymentLinksSadc',
+                'wwfp': 'paymentLinksWwfp'
+            };
+            ['paymentLinksLocal', 'paymentLinksSadc', 'paymentLinksWwfp'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            const activeId = ctxMap[currentPathTierMarkerKey];
+            if (activeId) {
+                const el = document.getElementById(activeId);
+                if (el) el.classList.remove('hidden');
+            }
+        }
+
         function updateAddressContext() {
             const ctx = currentPathTierMarkerKey;
             const suburbWrap   = document.getElementById("addrSuburbWrap");
@@ -1926,6 +1972,7 @@
 
             // Task 3 — Initialise address context
             updateAddressContext();
+            updatePaymentLinks();
             // Sync address country when SADC origin changes
             const originSel = document.getElementById("countryOriginSelect");
             if (originSel) originSel.addEventListener("change", function() {

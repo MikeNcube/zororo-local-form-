@@ -801,6 +801,16 @@ def test_sadac_allows_repeated_phone(client):
     assert second.status_code == 200
 
 
+# ── SPRINT 9: PLAN DISPLAY NAME + ADDRESS BLOCK ──────────────────────────────
+
+def test_plan_display_name_wwfp_executive():
+    """plan_display_name for WWFP_EXECUTIVE_F must return a clean label."""
+    result = pdf_builder.plan_display_name("WWFP_EXECUTIVE_F")
+    assert "WWFP_" not in result
+    assert "_" not in result
+    assert result
+
+
 # ── SPRINT 8 PART 5A: ADDRESS BLOCK + NATIONALITY ────────────────────────────
 
 def test_missing_street_address_returns_422(client):
