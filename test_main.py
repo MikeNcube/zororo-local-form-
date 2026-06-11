@@ -543,11 +543,11 @@ def test_easipol_live_false_returns_demo_headers(client):
 
 
 def test_easipol_live_true_returns_fallback(client, monkeypatch):
-    """EASIPOL_LIVE=True with no credentials must return 200 with FALLBACK policy ref."""
+    """EASIPOL_LIVE=True in PARKED state must return 200 with PENDING policy ref."""
     monkeypatch.setattr(main, "EASIPOL_LIVE", True)
     resp = client.post("/submit-global-policy", data=make_valid_form_data())
     assert resp.status_code == 200
-    assert "FALLBACK" in resp.headers.get("x-easipol-policy-number", "")
+    assert resp.headers.get("x-easipol-policy-number") == "PENDING"
 
 
 # ── SPRINT 4: MAX DEPENDENTS ENFORCEMENT ─────────────────────────────────────
@@ -656,11 +656,11 @@ def test_popia_consent_true_returns_200(client):
 # ── SPRINT 6: EASIPOL RESILIENCE ─────────────────────────────────────────────
 
 def test_easipol_live_true_fallback_never_501(client, monkeypatch):
-    """EASIPOL_LIVE=True must never return 501 — always 200 with FALLBACK or PENDING billing."""
+    """EASIPOL_LIVE=True in PARKED state must never return 501 — always 200 with PENDING billing."""
     monkeypatch.setattr(main, "EASIPOL_LIVE", True)
     resp = client.post("/submit-global-policy", data=make_valid_form_data())
     assert resp.status_code == 200
-    assert resp.headers.get("x-easipol-billing-reference") == "PENDING-EASIPOL"
+    assert resp.headers.get("x-easipol-billing-reference") == "PENDING"
 
 
 def test_easipol_live_false_always_demo_ref(client):
@@ -891,3 +891,33 @@ def test_submit_full_address_block_captured(client, monkeypatch):
     assert captured["nationality"] == "Zimbabwe"
     assert captured["alt_phone"] == "0791234567"
     assert captured["whatsapp"] == "0811234567"
+
+
+# ── SPRINT 12: EASIPOL CAPTURE PERSISTENCE ───────────────────────────────────
+
+def test_easipol_capture_appends_one_record(tmp_path, monkeypatch):
+    """PARKED state: live submit must append exactly one capture record (with PENDING refs)."""
+    captures_file = str(tmp_path / "easipol_captures.json")
+    reg_file = str(tmp_path / "registry.json")
+    pdf_dir = str(tmp_path / "pdfs")
+    os.makedirs(pdf_dir, exist_ok=True)
+    with open(reg_file, "w", encoding="utf-8") as f:
+        json.dump([], f)
+
+    monkeypatch.setattr(main, "REGISTRY_FILE", reg_file)
+    monkeypatch.setattr(main, "PDF_DIR", pdf_dir)
+    monkeypatch.setattr(main, "CAPTURES_FILE", captures_file)
+    monkeypatch.setattr(main, "EASIPOL_LIVE", True)
+
+    with TestClient(main.app) as c:
+        resp = c.post("/submit-global-policy", data=make_valid_form_data())
+
+    assert resp.status_code == 200
+    with open(captures_file, "r", encoding="utf-8") as f:
+        records = json.load(f)
+    assert len(records) == 1
+    # PARKED: NotImplementedError caught non-blocking; refs are PENDING until gates clear
+    assert records[0]["policy_number"] == "PENDING"
+    assert records[0]["billing_reference"] == "PENDING"
+    assert records[0]["source_form"] == "zororo-local-form-"
+    assert records[0]["live"] is True

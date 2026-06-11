@@ -186,11 +186,61 @@ The following decisions are signed off and this spec is approved for implementat
 
 ## 11. Change Log
 
-| Version | Date       | Change                                                  |
-|---------|------------|---------------------------------------------------------|
-| 1.0     | 2026-05-31 | Initial spec. All BR-DEC and NFR-DEC decisions resolved.|
+| Version | Date       | Change                                                                  |
+|---------|------------|-------------------------------------------------------------------------|
+| 1.0     | 2026-05-31 | Initial spec. All BR-DEC and NFR-DEC decisions resolved.                |
+| 1.1     | 2026-06-07 | Live integration proven — see §13.                                      |
+| 1.2     | 2026-06-11 | Easipol CreatePolicy body complete, parked — see §14.                   |
+
+---
+
+## 13. Live Integration — PROVEN
+
+2026-06-07: First successful live Easipol read confirmed. Auth=Basic (two-GUID). GetPolicy by
+cellNumber returned HTTP 200 with real data. Confirmed live field shapes: MainMember at top level;
+Policy_Number (underscore); PayAtNumber 20 digits; EasyPayNumber 12 digits; Inception_Date &
+Date_Captured present. Contract fully confirmed — no guesses remain.
 
 
+
+---
+
+## 14. Easipol CreatePolicy — COMPLETE, PARKED (2026-06-11)
+
+**Status:** Body assembly complete and inspectable. Transmission permanently blocked
+until all three gates below are cleared. Set `EASIPOL_LIVE=true` only after all gates.
+
+**What was built:**
+- `easipol_catalog.py` — static ProductID map for FranchiseID 457 (26 plans confirmed
+  from manager's live bundle; LOCAL R2000 plans absent from bundle, TODO confirm).
+- `_build_create_policy_body()` in `main.py` — assembles the full Easipol CreatePolicy
+  JSON body server-side from form submission data, matching the manager's live form shape.
+- `_get_easipol_references_v2()` — builds + logs the body at DEBUG level on every
+  submission (EASIPOL_LIVE=false), returns DEMO-PREVIEW-MODE placeholders. When
+  EASIPOL_LIVE=true, raises NotImplementedError (caught non-blocking → returns PENDING).
+- `agent_id` optional field added to the form and MainMember payload.
+
+**Architecture confirmed (investigation 2026-06-11):**
+The manager's form submits to a Next.js admin backend (`zororo-phumulani-applications-admin-
+production.up.railway.app/api/submit`) which calls Easipol CreatePolicy server-side.
+Our form mirrors this: FastAPI backend calls Easipol server-side once EASIPOL_LIVE=true.
+No Easipol credentials or IDs appear in any client bundle.
+
+**Three gates — must ALL clear before EASIPOL_LIVE=true:**
+
+1. **Manager go-ahead** — confirm a second form calling CreatePolicy is acceptable
+   (Easipol may enforce one form per franchise or require registration).
+2. **Write-access confirmed** — proven that our Basic Auth credentials have CreatePolicy
+   WRITE access. Only GetPolicy READ has been confirmed (2026-06-07).
+3. **Credential rotation** — the Basic Auth credential currently in use was stored
+   in EASIPOL_BASIC_AUTH env var; rotate / reissue before any live write call.
+
+**Open questions for RubiBlue:**
+- Do current credentials support CreatePolicy, or is a separate write-entitlement needed?
+- Must CreatePolicy include `FormID: 21` / `FormName: "zorphonline"`, or are these the
+  hosted-form config identifiers only?
+- Is `agent_id` the agent's Easipol login username or a separate numeric agent code?
+- What ProductIDs cover the LOCAL R2000 FAMILY and LOCAL R2000 SINGLE plans?
 
 ---
 

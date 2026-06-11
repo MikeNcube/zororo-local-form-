@@ -6,6 +6,7 @@ from typing import List, Optional
 import logging
 import os
 import json
+import re
 import base64
 import smtplib
 import uvicorn
@@ -16,8 +17,10 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from uuid import uuid4
+import requests
 import validators
 import pdf_builder
+import easipol_catalog
 
 app = FastAPI(
     title="Zororo Phumulani v4.1 - Railway Presentation Mode", version="4.1.0"
@@ -33,6 +36,7 @@ app.add_middleware(
 PDF_DIR = "generated_pdfs"
 STATIC_DIR = "static"
 REGISTRY_FILE = "submitted_policies.json"
+CAPTURES_FILE = "easipol_captures.json"
 
 os.makedirs(PDF_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
@@ -42,6 +46,10 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 if not os.path.exists(REGISTRY_FILE):
     with open(REGISTRY_FILE, "w") as f:
+        json.dump([], f)
+
+if not os.path.exists(CAPTURES_FILE):
+    with open(CAPTURES_FILE, "w", encoding="utf-8") as f:
         json.dump([], f)
 
 
@@ -95,6 +103,9 @@ def send_policy_email(
 # ─── EASIPOL INTEGRATION CONFIG ───────────────────────────────────────────────
 EASIPOL_LIVE = os.environ.get("EASIPOL_LIVE", "false").strip().lower() == "true"
 EASIPOL_TIMEOUT = int(os.environ.get("EASIPOL_TIMEOUT", "10"))
+EASIPOL_BASE_URL = os.environ.get("EASIPOL_BASE_URL", "http://127.0.0.1:8900")
+_EASIPOL_PAYAT_PREFIX: str = os.environ.get("EASIPOL_PAYAT_PREFIX", "115830")
+_EASIPOL_COUNTER_FILE: str = os.environ.get("EASIPOL_COUNTER_FILE", ".easipol_mock_counter")
 
 
 def _get_easipol_references() -> tuple:
@@ -102,8 +113,29 @@ def _get_easipol_references() -> tuple:
     if not EASIPOL_LIVE:
         return "DEMO-PREVIEW-MODE", "NO-LIVE-REFERENCE"
     try:
-        # TODO: replace with real Easipol HTTP call using EASIPOL_TIMEOUT
-        raise RuntimeError("Easipol credentials not yet configured.")
+        auth_resp = requests.post(
+            f"{EASIPOL_BASE_URL}/auth",
+            headers={"Authorization": os.environ["EASIPOL_BASIC_AUTH"]},
+            timeout=EASIPOL_TIMEOUT,
+        )
+        auth_resp.raise_for_status()
+        access_token = auth_resp.json()["access-token"]
+        pol_resp = requests.post(
+            f"{EASIPOL_BASE_URL}/policies",
+            headers={"access-token": access_token},
+            json={"source_form": "zororo-local-form-"},
+            timeout=EASIPOL_TIMEOUT,
+        )
+        pol_resp.raise_for_status()
+        resp_data = pol_resp.json()
+        policy_number = str(resp_data["policy_no"])
+        billing_reference = str(resp_data["reference_no"])
+        if not (billing_reference.isdigit() and len(billing_reference) == 20):
+            raise ValueError(
+                f"Pay@ billing_reference invalid (got {billing_reference!r}); "
+                "must be exactly 20 digits."
+            )
+        return (policy_number, billing_reference)
     except Exception as exc:
         logging.warning(f"Easipol unavailable: {exc}")
         policy_ref = f"ZP-FALLBACK-{uuid4().hex[:8].upper()}"
@@ -123,6 +155,254 @@ def append_registered_phone_number(phone_num: str):
     numbers.append(phone_num)
     with open(REGISTRY_FILE, "w") as f:
         json.dump(numbers, f)
+
+
+def _load_easipol_captures() -> list:
+    try:
+        with open(CAPTURES_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def _validate_billing_reference(ref: str) -> None:
+    if not re.fullmatch(r"\d{20}", ref):
+        raise ValueError(f"Easipol billing_reference failed 20-digit guard: {ref!r}")
+
+
+def _mock_easipol_references() -> dict:
+    """Deterministic counter-based mock. Policy numbers are Easipol-assigned live;
+    mock values are shaped but low. 115830 = Pay@ merchant prefix; ZORORO = live policy prefix."""
+    try:
+        counter = int(open(_EASIPOL_COUNTER_FILE).read().strip()) + 1
+    except (FileNotFoundError, ValueError):
+        counter = 1
+    with open(_EASIPOL_COUNTER_FILE, "w") as fh:
+        fh.write(str(counter))
+    today = datetime.now().strftime("%Y-%m-%d")
+    policy_number = f"ZORORO{counter:06d}"
+    billing_reference = f"{_EASIPOL_PAYAT_PREFIX}{counter:014d}"
+    _validate_billing_reference(billing_reference)
+    logging.info(
+        "[EASIPOL MOCK] policy_number=%s billing_reference=%s",
+        policy_number, billing_reference,
+    )
+    return {
+        "policy_number":     policy_number,
+        "billing_reference": billing_reference,
+        "pay_at_number":     billing_reference,
+        "easy_pay_number":   f"MOCK-EP-{counter:06d}",
+        "inception_date":    today,
+        "date_captured":     today,
+    }
+
+
+def _pg_capture(record: dict) -> None:
+    """Write one capture row to Postgres. Raises on any failure — caller handles fallback."""
+    import psycopg  # deferred: optional dep; ImportError propagates to caller's except
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL not set")
+    with psycopg.connect(db_url, connect_timeout=5, autocommit=True) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS easipol_captures (
+                id                SERIAL PRIMARY KEY,
+                captured_at       TIMESTAMPTZ DEFAULT NOW(),
+                source_form       TEXT,
+                policy_number     TEXT,
+                billing_reference TEXT,
+                live              BOOLEAN,
+                meta              JSONB,
+                pay_at_number     TEXT,
+                easy_pay_number   TEXT,
+                inception_date    TEXT,
+                date_captured     TEXT
+            )
+        """)
+        conn.execute(
+            """
+            INSERT INTO easipol_captures
+                (source_form, policy_number, billing_reference, live, meta,
+                 pay_at_number, easy_pay_number, inception_date, date_captured)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                record.get("source_form"),
+                record.get("policy_number"),
+                record.get("billing_reference"),
+                bool(record.get("live", False)),
+                record.get("meta"),
+                record.get("pay_at_number"),
+                record.get("easy_pay_number"),
+                record.get("inception_date"),
+                record.get("date_captured"),
+            ),
+        )
+
+
+def _append_easipol_capture(
+    policy_number: str,
+    billing_reference: str,
+    pay_at_number: str = None,
+    easy_pay_number: str = None,
+    inception_date: str = None,
+    date_captured: str = None,
+) -> None:
+    """Capture identifiers-only row. Tries Postgres first; falls back to JSON. No PII (POPIA)."""
+    from datetime import timezone
+    record = {
+        "id":              uuid4().hex,
+        "source_form":     "zororo-local-form-",
+        "policy_number":   policy_number,
+        "billing_reference": billing_reference,
+        "live":            EASIPOL_LIVE,
+        "captured_at":     datetime.now(timezone.utc).isoformat(),
+        "pay_at_number":   pay_at_number,
+        "easy_pay_number": easy_pay_number,
+        "inception_date":  inception_date,
+        "date_captured":   date_captured,
+    }
+    db_url = os.environ.get("DATABASE_URL", "")
+    if db_url:
+        try:
+            _pg_capture({k: record[k] for k in (
+                "source_form", "policy_number", "billing_reference", "live",
+                "pay_at_number", "easy_pay_number", "inception_date", "date_captured",
+            )})
+            return
+        except Exception as exc:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                "Postgres capture failed, falling back to JSON: %s", exc
+            )
+    # JSON flat-file fallback — always attempted if Postgres absent or failed
+    try:
+        captures = _load_easipol_captures()
+        captures.append(record)
+        with open(CAPTURES_FILE, "w", encoding="utf-8") as f:
+            json.dump(captures, f)
+    except Exception as exc:
+        import logging as _log
+        _log.getLogger(__name__).warning("JSON capture fallback failed: %s", exc)
+
+
+# ─── EASIPOL v2 — CONFIRMED LIVE CONTRACT (2026-06-07) ───────────────────────
+# Originals above (_get_easipol_references, _append_easipol_capture) are kept
+# intact. _v2 implements the confirmed live contract. Call site switches to _v2.
+
+def _build_create_policy_body(form_data: dict) -> dict:
+    """Build the Easipol CreatePolicy request body from form submission data.
+
+    Shape mirrors the manager's live form (application.zororophumulani.co.za),
+    confirmed by bundle inspection 2026-06-11. Does NOT transmit — caller gates.
+
+    # TODO: confirm whether agent_id is the agent's Easipol username or a
+    # separate numeric code issued by RubiBlue.
+    # TODO: confirm FormID/FormName required in CreatePolicy vs. only in hosted form.
+    # TODO: verify SubGroupID 370 (Pay@/cash) vs 371 (Debit) field placement.
+    """
+    plan_name = form_data.get("plan_name", "")
+    pay_method = form_data.get("pay_method", "")
+    product_id = easipol_catalog.get_product_id(plan_name) or 0
+    subgroup_id = easipol_catalog.get_subgroup_id(pay_method)
+
+    main_member: dict = {
+        "FranchiseID":  easipol_catalog.FRANCHISE_ID,
+        "SubGroupID":   subgroup_id,
+        "FormID":       easipol_catalog.FORM_ID,
+        "FormName":     easipol_catalog.FORM_NAME,
+        "ProductID":    product_id,
+        "First_Name":   form_data.get("fname", "").strip(),
+        "Surname":      form_data.get("lname", "").strip(),
+        "IDNumber":     form_data.get("identity_value", "").strip(),
+        "DateOfBirth":  form_data.get("dob", "").strip(),
+        "Gender":       form_data.get("gender", "").strip(),
+        "Cell_Number":  form_data.get("phone", "").strip(),
+        "Home_Tel":     "",
+        "Work_Tel":     "",
+        "Payment_Method": pay_method.strip(),
+    }
+    agent_id = form_data.get("agent_id", "").strip().upper()
+    if agent_id:
+        main_member["agent_id"] = agent_id
+
+    dep_rows = []
+    for i, dep in enumerate(form_data.get("dependents", []), start=1):
+        dep_rows.append({
+            "RowID":       i,
+            "RelationID":  dep.get("relation", ""),
+            "FirstName":   dep.get("fname", ""),
+            "Surname":     dep.get("lname", ""),
+            "IDNumber":    dep.get("id_number", ""),
+            "Passport":    "",
+            "ProductID":   product_id,
+            "Amount":      0,
+            "DateOfBirth": dep.get("dob", ""),
+            "Premium":     0,
+        })
+
+    banking: dict = {
+        "BankingDetailsAccountHolder": form_data.get("account_holder", "").strip(),
+        "BankingDetailsAccountNumber": form_data.get("account_number", "").strip(),
+        "BankingDetailsDebitDay":      form_data.get("debit_day", "1").strip(),
+    }
+    bank_name = form_data.get("bank_name", "").strip()
+    if bank_name:
+        banking["BankingDetailsBank"] = bank_name
+
+    return {
+        "MainMember":          main_member,
+        "PaymentMethod":       None,
+        "MainMemberAge":       0,
+        "Dependents":          dep_rows,
+        "BankingDetails":      banking,
+        "Documents":           [],
+        "Beneficiary":         None,
+        "MainMemberSignature": "",
+        "PolicyMemberBenefits": [],
+    }
+
+
+def _get_easipol_references_v2(form_data: dict = None) -> dict:
+    """v2 — confirmed live contract. Returns dict with 6 Easipol fields.
+
+    PARKED STATE (2026-06-11): body assembly complete; transmission blocked.
+    Three gates must clear before EASIPOL_LIVE=true is set:
+      (1) Manager go-ahead to bring a second form online.
+      (2) Confirm Basic Auth credentials have CreatePolicy WRITE access.
+      (3) Rotate / reissue the exposed Basic Auth credential.
+
+    Live READ contract (confirmed 2026-06-07):
+      auth:  POST /auth -> session headers: access-token / expiry / uid / token-type
+      read:  GET  /api/PolicyV2/GetPolicy
+             wrapper: {HttpResponseCode, ResponseMessage, ResponseObject}
+             policy_number:   ResponseObject.MainMember.Policy_Number (or PolicyNumber)
+             pay_at_number:   ResponseObject.MainMember.PayAtNumber (20 digits, prefix 115830)
+             easy_pay_number: ResponseObject.MainMember.EasyPayNumber (~12 digits)
+             inception_date:  ResponseObject.MainMember.Inception_Date
+             date_captured:   ResponseObject.MainMember.Date_Captured
+    """
+    if form_data:
+        try:
+            body = _build_create_policy_body(form_data)
+            logging.debug("[EASIPOL PARKED] CreatePolicy body: %s", json.dumps(body))
+        except Exception as exc:
+            logging.warning("[EASIPOL PARKED] Body build error: %s", exc)
+
+    if not EASIPOL_LIVE:
+        return {
+            "policy_number":     "DEMO-PREVIEW-MODE",
+            "billing_reference": "NO-LIVE-REFERENCE",
+            "pay_at_number":     None,
+            "easy_pay_number":   None,
+            "inception_date":    None,
+            "date_captured":     None,
+        }
+
+    raise NotImplementedError(
+        "PARKED — CreatePolicy transmission blocked. Three gates must clear: "
+        "(1) manager go-ahead, (2) write-access confirmed, (3) credential rotation."
+    )
 
 
 # ─── EMAIL LOGIC (HTTP API — SendGrid / Resend) ─────────────────────────
@@ -411,6 +691,7 @@ async def submit_policy(
     popia_consent: str = Form(default=""),
     agent_name: str = Form(default=""),
     agent_phone: str = Form(default=""),
+    agent_id: str = Form(default=""),
     branch_office: str = Form(default=""),
     manager_name: str = Form(default=""),
     street_address: str = Form(default=""),
@@ -499,7 +780,66 @@ async def submit_policy(
 
     append_registered_phone_number(clean_phone)
 
-    policy_number, payat_number = _get_easipol_references()
+    # ── EASIPOL FETCH (before PDF so live values thread into the document) ────
+    easipol_data: dict = {}
+    easipol_policy_number = "PENDING"
+    easipol_billing_reference = "PENDING"
+    try:
+        _ep_deps = []
+        for i, fn in enumerate(fam_fname):
+            if fn.strip():
+                _ep_deps.append({
+                    "relation":   fam_relation[i] if i < len(fam_relation) else "",
+                    "fname":      fn.strip(),
+                    "lname":      fam_lname[i] if i < len(fam_lname) else "",
+                    "dob":        fam_dob[i] if i < len(fam_dob) else "",
+                    "id_number":  "",
+                })
+        for i, fn in enumerate(ext_fam_fname):
+            if fn.strip():
+                _ep_deps.append({
+                    "relation":   ext_fam_relation[i] if i < len(ext_fam_relation) else "",
+                    "fname":      fn.strip(),
+                    "lname":      ext_fam_lname[i] if i < len(ext_fam_lname) else "",
+                    "dob":        ext_fam_dob[i] if i < len(ext_fam_dob) else "",
+                    "id_number":  "",
+                })
+        easipol_data = _get_easipol_references_v2(form_data={
+            "fname":          fname,
+            "lname":          lname,
+            "identity_value": identity_value,
+            "dob":            dob,
+            "gender":         gender,
+            "phone":          phone,
+            "plan_name":      plan_name,
+            "pay_method":     pay_method,
+            "agent_id":       agent_id,
+            "dependents":     _ep_deps,
+            "account_holder": account_name,
+            "account_number": account_num,
+            "debit_day":      deduction_date,
+            "bank_name":      bank_name,
+        })
+        easipol_policy_number = easipol_data.get("policy_number", "PENDING")
+        easipol_billing_reference = easipol_data.get("billing_reference", "PENDING")
+    except Exception as exc:
+        logging.error("Easipol fetch (non-blocking): %s", exc)
+    # ── END EASIPOL FETCH ─────────────────────────────────────────────────────
+    policy_number = easipol_policy_number
+
+    # ── EASIPOL CAPTURE ───────────────────────────────────────────────────────
+    try:
+        _append_easipol_capture(
+            policy_number=easipol_policy_number,
+            billing_reference=easipol_billing_reference,
+            pay_at_number=easipol_data.get("pay_at_number"),
+            easy_pay_number=easipol_data.get("easy_pay_number"),
+            inception_date=easipol_data.get("inception_date"),
+            date_captured=easipol_data.get("date_captured"),
+        )
+    except Exception as exc:
+        logging.error("Easipol capture (non-blocking): %s", exc)
+    # ── END EASIPOL CAPTURE ───────────────────────────────────────────────────
 
     pdf_filename = "Zororo_Presentation_Preview_Booklet.pdf"
     pdf_path = os.path.join(PDF_DIR, pdf_filename)
@@ -545,6 +885,10 @@ async def submit_policy(
         "alt_phone": alt_phone,
         "whatsapp": whatsapp,
         "nationality": nationality,
+        "easipol_pay_at_number":    easipol_data.get("pay_at_number",    "Pending (live)") if EASIPOL_LIVE else "Pending (live)",
+        "easipol_easy_pay_number":  easipol_data.get("easy_pay_number",  "Pending (live)") if EASIPOL_LIVE else "Pending (live)",
+        "easipol_inception_date":   easipol_data.get("inception_date",   "Pending (live)") if EASIPOL_LIVE else "Pending (live)",
+        "easipol_date_captured":    easipol_data.get("date_captured",    "Pending (live)") if EASIPOL_LIVE else "Pending (live)",
     }
     pdf_builder.build_policy_pdf(pdf_path, pdf_data, stillborn_review)
 
@@ -575,7 +919,7 @@ async def submit_policy(
 
     exposed_headers = {
         "X-Easipol-Policy-Number": str(policy_number),
-        "X-Easipol-Billing-Reference": str(payat_number),
+        "X-Easipol-Billing-Reference": str(easipol_billing_reference),
         "X-Bene-Deferred": str(bene_deferred).lower(),
         "Access-Control-Expose-Headers": (
             "X-Easipol-Policy-Number, X-Easipol-Billing-Reference, X-Bene-Deferred"
