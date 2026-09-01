@@ -738,6 +738,80 @@ def test_pre_execute_modal_in_html(client):
     assert "preExecuteModal" in resp.text
 
 
+def test_mask_email_hides_local_part():
+    """_mask_email must not leak the full local part (POPIA — no PII in logs)."""
+    assert main._mask_email("jsmith@example.com") == "j***@example.com"
+
+
+def test_mask_email_handles_missing_at_sign():
+    """_mask_email must not crash on a malformed address."""
+    assert main._mask_email("not-an-email") == "***"
+
+
+def test_send_email_worker_missing_api_key_logs_reason(monkeypatch, capsys):
+    """Missing EMAIL_API_KEY must be visible in Railway logs, not silent."""
+    monkeypatch.delenv("EMAIL_API_KEY", raising=False)
+    result = main.send_email_worker(
+        "client@example.com", "Subject", "<p>body</p>", None, "file.pdf", "POL-1"
+    )
+    assert result is False
+    out = capsys.readouterr().out
+    assert "EMAIL_API_KEY_NOT_SET" in out
+    assert "ref=POL-1" in out
+    assert "client@example.com" not in out
+
+
+def test_send_email_worker_unsupported_provider_logs_reason(monkeypatch, capsys):
+    """Unsupported EMAIL_PROVIDER must be visible in Railway logs, not silent."""
+    monkeypatch.setenv("EMAIL_API_KEY", "fake-key")
+    monkeypatch.setenv("EMAIL_PROVIDER", "mailgun")
+    result = main.send_email_worker(
+        "client@example.com", "Subject", "<p>body</p>", None, "file.pdf", "POL-2"
+    )
+    assert result is False
+    out = capsys.readouterr().out
+    assert "UNSUPPORTED_EMAIL_PROVIDER" in out
+    assert "ref=POL-2" in out
+
+
+def test_send_email_worker_auth_error_logged(monkeypatch, capsys):
+    """A 401/403 from the provider must be labelled AUTH_ERROR in logs."""
+    import io
+    import urllib.error
+
+    monkeypatch.setenv("EMAIL_API_KEY", "fake-key")
+    monkeypatch.setenv("EMAIL_PROVIDER", "resend")
+
+    def _raise_auth_error(*args, **kwargs):
+        raise urllib.error.HTTPError(
+            "https://api.resend.com/emails", 401, "Unauthorized", {},
+            io.BytesIO(b"unauthorized"),
+        )
+
+    monkeypatch.setattr(main, "_dispatch_via_provider", _raise_auth_error)
+    result = main.send_email_worker(
+        "client@example.com", "Subject", "<p>body</p>", None, "file.pdf", "POL-3"
+    )
+    assert result is False
+    out = capsys.readouterr().out
+    assert "AUTH_ERROR" in out
+    assert "status=401" in out
+
+
+def test_send_email_worker_success_logged(monkeypatch, capsys):
+    """A successful dispatch must log DISPATCH OK with status=200."""
+    monkeypatch.setenv("EMAIL_API_KEY", "fake-key")
+    monkeypatch.setenv("EMAIL_PROVIDER", "resend")
+    monkeypatch.setattr(main, "_dispatch_via_provider", lambda *a, **k: True)
+    result = main.send_email_worker(
+        "client@example.com", "Subject", "<p>body</p>", None, "file.pdf", "POL-4"
+    )
+    assert result is True
+    out = capsys.readouterr().out
+    assert "DISPATCH OK" in out
+    assert "status=200" in out
+
+
 # ── SPRINT 8: CLIENT IP AUDIT + SADAC DUPLICATE ALLOW ────────────────────────
 
 def test_submit_captures_forwarded_ip(client, monkeypatch):

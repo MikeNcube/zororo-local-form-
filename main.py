@@ -477,8 +477,18 @@ def _dispatch_via_provider(provider, api_key, from_email, to_addr,
     return _post_email_json(url, api_key, payload)
 
 
+def _mask_email(addr: str) -> str:
+    """Mask the local part of an email for safe logging (POPIA — no PII in logs)."""
+    if not addr or "@" not in addr:
+        return "***"
+    local, _, domain = addr.partition("@")
+    visible = local[:1] if local else ""
+    return f"{visible}***@{domain}"
+
+
 def send_email_worker(to_addr: str, subject: str, html_body: str,
-                      pdf_bytes: Optional[bytes], pdf_filename: str) -> bool:
+                      pdf_bytes: Optional[bytes], pdf_filename: str,
+                      policy_ref: str = "") -> bool:
     """
     Send one transactional email via HTTPS API (SendGrid or Resend).
     Runs under FastAPI BackgroundTasks — failures never block the HTTP response.
@@ -488,16 +498,15 @@ def send_email_worker(to_addr: str, subject: str, html_body: str,
         "DEFAULT_FROM_EMAIL", "applications@zororo-phumulani.co.za"
     )
     provider = os.environ.get("EMAIL_PROVIDER", "resend").strip().lower()
+    masked_to = _mask_email(to_addr)
+    log_tag = f"ref={policy_ref or 'n/a'} provider={provider} to={masked_to}"
 
     if not api_key:
-        print("[ERROR] PROVIDER DISPATCH ERROR: EMAIL_API_KEY is not configured")
+        print(f"[EMAIL] DISPATCH SKIPPED {log_tag} reason=EMAIL_API_KEY_NOT_SET")
         return False
 
     if provider not in ("sendgrid", "resend"):
-        print(
-            f"[ERROR] PROVIDER DISPATCH ERROR: "
-            f"unsupported EMAIL_PROVIDER '{provider}' (use sendgrid or resend)"
-        )
+        print(f"[EMAIL] DISPATCH SKIPPED {log_tag} reason=UNSUPPORTED_EMAIL_PROVIDER")
         return False
 
     attachment = _pdf_attachment_payload(pdf_bytes, pdf_filename)
@@ -507,16 +516,20 @@ def send_email_worker(to_addr: str, subject: str, html_body: str,
             provider, api_key, from_email, to_addr, subject, html_body, attachment
         )
         if ok:
-            print(f"[EMAIL] Policy PDF notification dispatched via {provider}")
+            print(f"[EMAIL] DISPATCH OK {log_tag} status=200")
+        else:
+            print(f"[EMAIL] DISPATCH FAILED {log_tag} reason=NON_2XX_RESPONSE")
         return ok
     except urllib.error.HTTPError as exc:
         exc.read()
-        print(
-            f"[EMAIL ERROR] Provider returned HTTP {exc.code} from {provider}"
-        )
+        reason = "AUTH_ERROR" if exc.code in (401, 403) else f"HTTP_{exc.code}"
+        print(f"[EMAIL] DISPATCH FAILED {log_tag} status={exc.code} reason={reason}")
         return False
     except Exception as exc:
-        print(f"[ERROR] PROVIDER DISPATCH ERROR: {exc}")
+        print(
+            f"[EMAIL] DISPATCH FAILED {log_tag} "
+            f"reason=EXCEPTION detail={type(exc).__name__}"
+        )
         return False
 
 
@@ -915,6 +928,7 @@ async def submit_policy(
         client_body,
         pdf_bytes,
         pdf_filename,
+        policy_number,
     )
 
     exposed_headers = {
